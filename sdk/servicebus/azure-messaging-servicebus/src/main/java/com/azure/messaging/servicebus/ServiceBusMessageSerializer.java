@@ -128,7 +128,14 @@ class ServiceBusMessageSerializer implements MessageSerializer {
         final byte[] body = brokeredMessage.getBody();
 
         //TODO (conniey): support AMQP sequence and AMQP value.
-        amqpMessage.setBody(new Data(new Binary(body)));
+        if (brokeredMessage.getBodyType() == MessageBodyType.BINARY || brokeredMessage.getBodyType() == null ) {
+            amqpMessage.setBody(new Data(new Binary(body)));
+        } else if (brokeredMessage.getBodyType() == MessageBodyType.SEQUENCE) {
+            amqpMessage.setBody(new AmqpSequence(getSequenceFromMessageBody(brokeredMessage.getSequenceData())));
+
+        } else if (brokeredMessage.getBodyType() == MessageBodyType.VALUE) {
+            amqpMessage.setBody(new Data(new Binary(getDataFromMessageBody(brokeredMessage.getBinaryData()))));
+        }
 
         if (brokeredMessage.getProperties() != null) {
             amqpMessage.setApplicationProperties(new ApplicationProperties(brokeredMessage.getProperties()));
@@ -304,6 +311,11 @@ class ServiceBusMessageSerializer implements MessageSerializer {
                 final Binary messageData = ((Data) body).getValue();
                 final byte[] bytes = messageData.getArray();
                 brokeredMessage = new ServiceBusReceivedMessage(bytes);
+            } else if (body instanceof AmqpValue) {
+              brokeredMessage = ServiceBusReceivedMessage.fromValueData(body);
+            } else if (body instanceof AmqpSequence) {
+                List<Object> messageData = ((AmqpSequence) body).getValue();
+                brokeredMessage = ServiceBusReceivedMessage.fromSequenceData(getSequenceFromMessageBody(messageData));
             } else {
                 logger.warning(String.format(Messages.MESSAGE_NOT_OF_TYPE, body.getType()));
                 brokeredMessage = new ServiceBusReceivedMessage(EMPTY_BYTE_ARRAY);
@@ -536,5 +548,21 @@ class ServiceBusMessageSerializer implements MessageSerializer {
 
         throw new IllegalArgumentException(String.format(Locale.US,
             "Encoding Type: %s is not supported", obj.getClass()));
+    }
+
+    static byte[] getDataFromMessageBody(List<byte[]> binaryData) {
+        if (binaryData == null || binaryData.size() == 0) {
+            return null;
+        } else {
+            return binaryData.get(0);
+        }
+    }
+
+    static List<Object> getSequenceFromMessageBody(List<List<Object>> sequenceData) {
+        if (sequenceData == null || sequenceData.size() == 0) {
+            return null;
+        } else {
+            return sequenceData.get(0);
+        }
     }
 }
