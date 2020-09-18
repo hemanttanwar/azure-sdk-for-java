@@ -15,6 +15,9 @@ import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class UserStudy {
     protected static final Duration TIMEOUT = Duration.ofSeconds(60);
@@ -65,7 +68,7 @@ public class UserStudy {
         ServiceBusReceiverClient deadLetterReceiver = getBuilder()
             .receiver()
             .queueName(nonSessionQueueName)
-            .subQueue(SubQueue.DEAD_LETTER_QUEUE)  // We are expecting that user might get lost here"
+            .subQueue(SubQueue.DEAD_LETTER_QUEUE)  // Hypothesis: We are expecting that user might get lost here or not find this option."
             .buildClient();
         final IterableStream<ServiceBusReceivedMessageContext> receivedDeadLetterMessages = deadLetterReceiver.receiveMessages(1);
 
@@ -112,7 +115,7 @@ public class UserStudy {
 
         // #3
         ServiceBusReceiverClient deadLetterReceiver = getBuilder()
-            .receiver() // We are almost certain that user will be try to use .sessionReceiver() here which is wrong.
+            .receiver() //Hypothesis:  We are almost certain that user will be try to use .sessionReceiver() here which is wrong.
             .queueName(sessionQueueName)
             .subQueue(SubQueue.DEAD_LETTER_QUEUE)
             .buildClient();
@@ -124,6 +127,52 @@ public class UserStudy {
         }
     }
 
+    /**
+     * This is for non-session entity. User does following
+     * SETUP : Ensure that the lock expiry time is 30 seconds.
+     *
+     * 1. send a message to Queue (non session entity)
+     * 2. Receive and Renew Message lock for 2 minutes
+     * 3. complete message after 30 second (Assuming that 30 second is lock expiry time )
+     */
+    private void lockRenewal() {
+        ServiceBusReceiverClient receiver = getBuilder()
+            .receiver()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        ServiceBusSenderClient sender = getBuilder()
+            .sender()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        final String messageId = "my-id-1";
+        final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
+        message.setMessageId(messageId);
+
+        // Send the message.
+        // #1
+        sender.sendMessage(message);
+        System.out.println("Message sent. Message Id : " + message.getMessageId());
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
+        // #2, 3
+        Duration maxLockRenewalDuration =  Duration.ofMinutes(2);
+        // This is call back for user to receive error
+        Consumer<Throwable> onError = throwable -> {
+            System.out.println("Received Error in lock renewal." + throwable.getMessage());
+        };
+
+        for (ServiceBusReceivedMessageContext context : receivedMessages) {
+            receiver.renewMessageLock(context.getMessage(), maxLockRenewalDuration, onError);
+            // add artificial Delay in processing of the message.
+            System.out.println("Waiting for lock to expire and renew.");
+            artificialDelay();
+            System.out.println("Received and Settling (complete) the Message. Message Id : " + context.getMessage().getMessageId());
+            receiver.complete(context.getMessage());
+        }
+    }
+
     protected ServiceBusClientBuilder getBuilder() {
         return new ServiceBusClientBuilder()
             .retryOptions(RETRY_OPTIONS)
@@ -131,9 +180,19 @@ public class UserStudy {
             .connectionString(connectionString);
     }
 
+    private void artificialDelay() {
+        try {
+            final int waitTimeSeconds = 35;
+            System.out.println("  " + waitTimeSeconds + " Seconds.");
+            TimeUnit.SECONDS.sleep(waitTimeSeconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
     public static void main(String[]  args) {
         UserStudy task = new UserStudy();
         task.receiveFromSubQueueSessionEntity();
         task.receiveFromSubQueueSessionEntity();
+        task.lockRenewal();
     }
 }
