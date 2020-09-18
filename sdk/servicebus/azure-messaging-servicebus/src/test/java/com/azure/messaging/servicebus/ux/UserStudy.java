@@ -1,0 +1,124 @@
+package com.azure.messaging.servicebus.ux;
+
+import com.azure.core.amqp.AmqpRetryOptions;
+import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.util.IterableStream;
+import com.azure.messaging.servicebus.ServiceBusClientBuilder;
+import com.azure.messaging.servicebus.ServiceBusMessage;
+import com.azure.messaging.servicebus.ServiceBusReceivedMessageContext;
+import com.azure.messaging.servicebus.ServiceBusReceiverClient;
+import com.azure.messaging.servicebus.ServiceBusSenderClient;
+
+import com.azure.messaging.servicebus.models.SubQueue;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+public class UserStudy {
+    protected static final Duration TIMEOUT = Duration.ofSeconds(60);
+    protected static final AmqpRetryOptions RETRY_OPTIONS = new AmqpRetryOptions().setTryTimeout(TIMEOUT);
+    private final Scheduler scheduler = Schedulers.parallel();
+
+    private static String connectionString = System.getenv("AZURE_SERVICEBUS_NAMESPACE_CONNECTION_STRING");
+    private static String nonSessionQueueName = System.getenv("AZURE_SERVICEBUS_QUEUE_NAME");
+    private static String sessionQueueName = System.getenv("AZURE_SERVICEBUS_SESSION_QUEUE_NAME");
+    private static String sessionId = "my-session-id1";
+
+    protected static final byte[] CONTENTS_BYTES = "Some-contents".getBytes(StandardCharsets.UTF_8);
+
+    private void receiveFromSubQueueNonSessionEntity() {
+        ServiceBusReceiverClient receiver = getBuilder()
+            .receiver()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        ServiceBusSenderClient sender = getBuilder()
+            .sender()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
+            .receiver()
+            .queueName(nonSessionQueueName)
+            .subQueue(SubQueue.DEAD_LETTER_QUEUE)
+            .buildClient();
+
+        final String messageId = "my-id-1";
+        final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
+        message.setMessageId(messageId);
+
+        // Send the message.
+        sender.sendMessage(message);
+        System.out.println("Message sent. Message Id : " + message.getMessageId());
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
+
+        for (ServiceBusReceivedMessageContext context : receivedMessages) {
+            System.out.println("Received and Settling (deadLetter) the Message. Message Id : " + context.getMessage().getMessageId());
+            receiver.deadLetter(context.getMessage());
+        }
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedDeadLetterMessages = deadLetterReceiver.receiveMessages(1);
+
+        for (ServiceBusReceivedMessageContext context : receivedDeadLetterMessages) {
+            deadLetterReceiver.complete(context.getMessage());
+            System.out.println("Received DeadLetter Message Message. Id : " + context.getMessage().getMessageId());
+        }
+    }
+
+    private void receiveFromSubQueueSessionEntity() {
+        ServiceBusReceiverClient receiver = getBuilder()
+            .sessionReceiver()
+            .queueName(sessionQueueName)
+            .sessionId(sessionId)
+            .buildClient();
+
+        ServiceBusSenderClient sender = getBuilder()
+            .sender()
+            .queueName(sessionQueueName)
+            .buildClient();
+
+        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
+            .receiver()
+            .queueName(sessionQueueName)
+            .subQueue(SubQueue.DEAD_LETTER_QUEUE)
+            .buildClient();
+
+        final String messageId = "my-id-1";
+        final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
+        message.setMessageId(messageId);
+        message.setSessionId(sessionId);
+
+        // Send the message.
+        sender.sendMessage(message);
+        System.out.println("Message sent. Message Id : " + message.getMessageId());
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
+
+        for (ServiceBusReceivedMessageContext context : receivedMessages) {
+            System.out.println("Received and Settling (deadLetter) the Message. Message Id, Session Id : " + context.getMessage().getMessageId() + "," + context.getMessage().getSessionId());
+            receiver.deadLetter(context.getMessage());
+        }
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedDeadLetterMessages = deadLetterReceiver.receiveMessages(1);
+
+        for (ServiceBusReceivedMessageContext context : receivedDeadLetterMessages) {
+            deadLetterReceiver.complete(context.getMessage());
+            System.out.println("Received DeadLetter Message. Message Id , session Id: " + context.getMessage().getMessageId() + "," + context.getMessage().getSessionId());
+        }
+    }
+
+    protected ServiceBusClientBuilder getBuilder() {
+        return new ServiceBusClientBuilder()
+            .retryOptions(RETRY_OPTIONS)
+            .transportType(AmqpTransportType.AMQP)
+            .connectionString(connectionString);
+    }
+
+    public static void main(String[]  args) {
+        UserStudy task = new UserStudy();
+        task.receiveFromSubQueueSessionEntity();
+    }
+}
