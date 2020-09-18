@@ -15,14 +15,12 @@ import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class UserStudy {
     protected static final Duration TIMEOUT = Duration.ofSeconds(60);
     protected static final AmqpRetryOptions RETRY_OPTIONS = new AmqpRetryOptions().setTryTimeout(TIMEOUT);
-    private final Scheduler scheduler = Schedulers.parallel();
 
     private static String connectionString = System.getenv("AZURE_SERVICEBUS_NAMESPACE_CONNECTION_STRING");
     private static String nonSessionQueueName = System.getenv("AZURE_SERVICEBUS_QUEUE_NAME");
@@ -164,7 +162,7 @@ public class UserStudy {
         };
 
         for (ServiceBusReceivedMessageContext context : receivedMessages) {
-            receiver.renewMessageLock(context.getMessage(), maxLockRenewalDuration, onError);
+            receiver.renewMessageLock(context.getMessage(), maxLockRenewalDuration, onError); // Hypothesis : User will be able to figure this API out.
             // add artificial Delay in processing of the message.
             System.out.println("Waiting for lock to expire and renew.");
             artificialDelay();
