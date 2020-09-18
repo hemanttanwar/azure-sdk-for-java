@@ -28,6 +28,12 @@ public class UserStudy {
 
     protected static final byte[] CONTENTS_BYTES = "Some-contents".getBytes(StandardCharsets.UTF_8);
 
+    /**
+     * This is for non-session entity. User does following
+     * 1. send a message to Queue
+     * 2. Receive and deadLetter a message
+     * 3. Receive from deadletter queue.
+     */
     private void receiveFromSubQueueNonSessionEntity() {
         ServiceBusReceiverClient receiver = getBuilder()
             .receiver()
@@ -39,27 +45,28 @@ public class UserStudy {
             .queueName(nonSessionQueueName)
             .buildClient();
 
-        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
-            .receiver()
-            .queueName(nonSessionQueueName)
-            .subQueue(SubQueue.DEAD_LETTER_QUEUE)
-            .buildClient();
-
         final String messageId = "my-id-1";
         final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
         message.setMessageId(messageId);
 
         // Send the message.
+        // #1
         sender.sendMessage(message);
         System.out.println("Message sent. Message Id : " + message.getMessageId());
 
         final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
-
+        // #2
         for (ServiceBusReceivedMessageContext context : receivedMessages) {
             System.out.println("Received and Settling (deadLetter) the Message. Message Id : " + context.getMessage().getMessageId());
             receiver.deadLetter(context.getMessage());
         }
 
+        // #3
+        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
+            .receiver()
+            .queueName(nonSessionQueueName)
+            .subQueue(SubQueue.DEAD_LETTER_QUEUE)  // We are expecting that user might get lost here"
+            .buildClient();
         final IterableStream<ServiceBusReceivedMessageContext> receivedDeadLetterMessages = deadLetterReceiver.receiveMessages(1);
 
         for (ServiceBusReceivedMessageContext context : receivedDeadLetterMessages) {
@@ -68,6 +75,12 @@ public class UserStudy {
         }
     }
 
+    /**
+     * This is for session entity. User does following
+     * 1. send a message to Queue
+     * 2. Receive and deadLetter a message
+     * 3. Receive from deadletter queue.
+     */
     private void receiveFromSubQueueSessionEntity() {
         ServiceBusReceiverClient receiver = getBuilder()
             .sessionReceiver()
@@ -80,21 +93,16 @@ public class UserStudy {
             .queueName(sessionQueueName)
             .buildClient();
 
-        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
-            .receiver()
-            .queueName(sessionQueueName)
-            .subQueue(SubQueue.DEAD_LETTER_QUEUE)
-            .buildClient();
-
         final String messageId = "my-id-1";
         final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
         message.setMessageId(messageId);
         message.setSessionId(sessionId);
 
-        // Send the message.
+        //#1 Send the message.
         sender.sendMessage(message);
         System.out.println("Message sent. Message Id : " + message.getMessageId());
 
+        // #2
         final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
 
         for (ServiceBusReceivedMessageContext context : receivedMessages) {
@@ -102,6 +110,12 @@ public class UserStudy {
             receiver.deadLetter(context.getMessage());
         }
 
+        // #3
+        ServiceBusReceiverClient deadLetterReceiver = getBuilder()
+            .receiver() // We are almost certain that user will be try to use .sessionReceiver() here which is wrong.
+            .queueName(sessionQueueName)
+            .subQueue(SubQueue.DEAD_LETTER_QUEUE)
+            .buildClient();
         final IterableStream<ServiceBusReceivedMessageContext> receivedDeadLetterMessages = deadLetterReceiver.receiveMessages(1);
 
         for (ServiceBusReceivedMessageContext context : receivedDeadLetterMessages) {
@@ -119,6 +133,7 @@ public class UserStudy {
 
     public static void main(String[]  args) {
         UserStudy task = new UserStudy();
+        task.receiveFromSubQueueSessionEntity();
         task.receiveFromSubQueueSessionEntity();
     }
 }
