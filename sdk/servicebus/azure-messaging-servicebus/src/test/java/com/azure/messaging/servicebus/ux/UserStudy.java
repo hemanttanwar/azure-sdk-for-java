@@ -2,6 +2,9 @@ package com.azure.messaging.servicebus.ux;
 
 import com.azure.core.amqp.AmqpRetryOptions;
 import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.models.AmqpAnnotatedMessage;
+import com.azure.core.amqp.models.AmqpMessageHeader;
+import com.azure.core.amqp.models.AmqpMessageProperties;
 import com.azure.core.util.IterableStream;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusMessage;
@@ -10,11 +13,13 @@ import com.azure.messaging.servicebus.ServiceBusReceiverClient;
 import com.azure.messaging.servicebus.ServiceBusSenderClient;
 
 import com.azure.messaging.servicebus.models.SubQueue;
+import org.apache.qpid.proton.amqp.Symbol;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -171,6 +176,48 @@ public class UserStudy {
         }
     }
 
+    /**
+     * This is for non-session entity. User does following
+     * 1. set amqp properties on message
+     * 2. send the message
+     * 2. Receive and print amqp proeprties
+     */
+    private void readAndWriteAmqpProperties() {
+        ServiceBusReceiverClient receiver = getBuilder()
+            .receiver()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        ServiceBusSenderClient sender = getBuilder()
+            .sender()
+            .queueName(nonSessionQueueName)
+            .buildClient();
+
+        final String messageId = "my-id-1";
+        final ServiceBusMessage message = new ServiceBusMessage(CONTENTS_BYTES);
+        message.setMessageId(messageId);
+
+        //#1 set Amqp properties
+        final AmqpAnnotatedMessage amqpAnnotatedMessage = message.getAmqpAnnotatedMessage();
+        amqpAnnotatedMessage.getApplicationProperties().put("temp", "70");
+
+        final AmqpMessageProperties amqpMessageProperties = amqpAnnotatedMessage.getProperties();
+        amqpMessageProperties.setSubject("mysubject");
+
+        //#2 Send the message.
+        sender.sendMessage(message);
+        System.out.println("Message sent. Message Id : " + message.getMessageId());
+
+        final IterableStream<ServiceBusReceivedMessageContext> receivedMessages = receiver.receiveMessages(1);
+        // #3
+        for (ServiceBusReceivedMessageContext context : receivedMessages) {
+            System.out.println("Received Message Subject : " + context.getMessage().getAmqpAnnotatedMessage().getApplicationProperties().get("temp"));
+            System.out.println("Received Message Subject : " + context.getMessage().getLabel());
+            System.out.println("Received Message Message Id : " + context.getMessage().getMessageId());
+            receiver.complete(context.getMessage());
+        }
+    }
+
     protected ServiceBusClientBuilder getBuilder() {
         return new ServiceBusClientBuilder()
             .retryOptions(RETRY_OPTIONS)
@@ -189,8 +236,9 @@ public class UserStudy {
     }
     public static void main(String[]  args) {
         UserStudy task = new UserStudy();
-        task.receiveFromSubQueueSessionEntity();
-        task.receiveFromSubQueueSessionEntity();
-        task.lockRenewal();
+        //task.receiveFromSubQueueSessionEntity();
+        //task.receiveFromSubQueueSessionEntity();
+        //task.lockRenewal();
+        task.readAndWriteAmqpProperties();
     }
 }
