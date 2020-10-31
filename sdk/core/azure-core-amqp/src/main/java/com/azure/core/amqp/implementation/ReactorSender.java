@@ -164,7 +164,25 @@ class ReactorSender implements AmqpSendLink {
                         errorMessage, exception, handler.getErrorContext(sender));
                     return Mono.error(error);
                 }
-                return send(bytes, encodedSize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
+                final Message amqpMessage2 = Proton.message();
+                Binary binary2 = new Binary("part-2-data".getBytes());
+                amqpMessage2.setBody(new Data(binary2));
+                final byte[] bytes2 = new byte[allocationSize];
+
+                int encodedSize2 = 0;
+                try {
+                    encodedSize2 = amqpMessage2.encode(bytes2, 0, allocationSize);
+                }catch (BufferOverflowException exception) {
+
+                }
+                int finalsize = encodedSize2 + encodedSize;
+                
+                byte[] finalbytes = new byte[bytes.length + bytes2.length];
+                System.arraycopy(bytes, 0, finalbytes, 0, bytes.length);
+                System.arraycopy(bytes2, 0, finalbytes, bytes.length, bytes2.length);
+                return send(finalbytes, finalsize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
+
+                //return send(bytes, encodedSize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
             }).then();
     }
 

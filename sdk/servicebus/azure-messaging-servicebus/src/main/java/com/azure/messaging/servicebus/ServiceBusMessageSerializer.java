@@ -13,9 +13,11 @@ import com.azure.core.amqp.models.AmqpAnnotatedMessage;
 import com.azure.core.amqp.models.AmqpMessageHeader;
 import com.azure.core.amqp.models.AmqpMessageProperties;
 import com.azure.core.util.logging.ClientLogger;
+import com.azure.messaging.servicebus.implementation.AmqpCustomMultipleDataType;
 import com.azure.messaging.servicebus.implementation.ManagementConstants;
 import com.azure.messaging.servicebus.implementation.MessageWithLockToken;
 import com.azure.messaging.servicebus.implementation.Messages;
+import com.azure.messaging.servicebus.implementation.AmqpCustomMultipleData;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.Decimal128;
@@ -37,6 +39,7 @@ import org.apache.qpid.proton.amqp.messaging.Properties;
 import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.amqp.transaction.Declare;
 import org.apache.qpid.proton.amqp.transaction.Discharge;
+import org.apache.qpid.proton.codec.AMQPDefinedTypes;
 import org.apache.qpid.proton.message.Message;
 
 import java.lang.reflect.Array;
@@ -125,7 +128,18 @@ class ServiceBusMessageSerializer implements MessageSerializer {
         final byte[] body = brokeredMessage.getBody();
 
         //TODO (conniey): support AMQP sequence and AMQP value.
-        amqpMessage.setBody(new Data(new Binary(body)));
+        Binary binary = new Binary(body);
+
+        //List<Data> dataList =  new ArrayList<>();
+        //dataList.add(new Data(binary));
+        //dataList.add(new Data(new Binary("part -2 ".getBytes())));
+        //dataList.add(new Data(new Binary("part -3 ".getBytes())));
+       // AmqpCustomMultipleDataType.register(decoder, encoder);
+       // AMQPDefinedTypes.registerMessagingTypes();
+        //AmqpCustomMultipleData multipleData = new AmqpCustomMultipleData(dataList);
+        //amqpMessage.setBody(multipleData);
+
+        amqpMessage.setBody(new Data(binary));
 
         if (brokeredMessage.getApplicationProperties() != null) {
             amqpMessage.setApplicationProperties(new ApplicationProperties(brokeredMessage.getApplicationProperties()));
