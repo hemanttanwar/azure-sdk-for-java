@@ -13,6 +13,7 @@ import com.azure.core.amqp.implementation.handler.SendLinkHandler;
 import com.azure.core.util.logging.ClientLogger;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.DescribedType;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.UnsignedLong;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
@@ -22,6 +23,9 @@ import org.apache.qpid.proton.amqp.messaging.Released;
 import org.apache.qpid.proton.amqp.transaction.Declared;
 import org.apache.qpid.proton.amqp.transport.DeliveryState;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
+import org.apache.qpid.proton.codec.AMQPDefinedTypes;
+import org.apache.qpid.proton.codec.DescribedTypeConstructor;
+import org.apache.qpid.proton.codec.impl.DataImpl;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Sender;
@@ -150,7 +154,9 @@ class ReactorSender implements AmqpSendLink {
                 final int payloadSize = messageSerializer.getSize(message);
                 final int allocationSize =
                     Math.min(payloadSize + MAX_AMQP_HEADER_SIZE_BYTES, maxMessageSize);
-                final byte[] bytes = new byte[allocationSize];
+
+                //final byte[] bytes = new byte[allocationSize];
+                final byte[] bytes = new byte[maxMessageSize];
 
                 int encodedSize;
                 try {
@@ -164,23 +170,27 @@ class ReactorSender implements AmqpSendLink {
                         errorMessage, exception, handler.getErrorContext(sender));
                     return Mono.error(error);
                 }
-                final Message amqpMessage2 = Proton.message();
-                Binary binary2 = new Binary("part-2-data".getBytes());
-                amqpMessage2.setBody(new Data(binary2));
-                final byte[] bytes2 = new byte[allocationSize];
 
-                int encodedSize2 = 0;
-                try {
-                    encodedSize2 = amqpMessage2.encode(bytes2, 0, allocationSize);
-                }catch (BufferOverflowException exception) {
+                int byteArrayOffset = encodedSize;
+                // just runs 1 time for testing
+                for (int i=0 ;i<1 ;++i) {
+                    org.apache.qpid.proton.codec.Data messageWrappedByData = DataImpl.Factory.create();
+                    messageWrappedByData.putDescribedType(new AmqpDataDescribedType(new Binary(("part-data-"+(i + 2))
+                        .getBytes())));
+                    byte[] bytesWrappedData = messageWrappedByData.encode().getArray();
+                    int encodedSize2 = bytesWrappedData.length;
 
-                }
-                int finalsize = encodedSize2 + encodedSize;
-                
-                byte[] finalbytes = new byte[bytes.length + bytes2.length];
-                System.arraycopy(bytes, 0, finalbytes, 0, bytes.length);
-                System.arraycopy(bytes2, 0, finalbytes, bytes.length, bytes2.length);
-                return send(finalbytes, finalsize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
+                    // append
+                    int index = byteArrayOffset;
+                    for (int j = 0; j < encodedSize2; ++j) {
+                        bytes[index++] = bytesWrappedData[j];
+                    }
+
+                    byteArrayOffset = byteArrayOffset + encodedSize2;
+
+                } //for
+
+                return send(bytes, byteArrayOffset, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
 
                 //return send(bytes, encodedSize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
             }).then();
