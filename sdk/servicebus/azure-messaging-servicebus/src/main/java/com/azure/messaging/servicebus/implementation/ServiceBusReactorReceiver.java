@@ -35,6 +35,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -198,7 +199,14 @@ public class ServiceBusReactorReceiver extends ReactorReceiver implements Servic
             final int messageSize = delivery.pending();
             final byte[] buffer = new byte[messageSize];
             final int read = receiver.recv(buffer, 0, messageSize);
-            final Message message = Proton.message();
+            try {
+                System.out.println( new String(buffer, "UTF8"));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            //final Message message = Proton.message();
+            final Message  message = MessageMultiDataSectionImpl.Factory.create();
+
             message.decode(buffer, 0, read);
 
             // The delivery was already settled from the message broker.
