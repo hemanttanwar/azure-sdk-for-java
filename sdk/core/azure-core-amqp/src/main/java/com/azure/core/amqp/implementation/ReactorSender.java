@@ -13,7 +13,6 @@ import com.azure.core.amqp.implementation.handler.SendLinkHandler;
 import com.azure.core.util.logging.ClientLogger;
 import org.apache.qpid.proton.Proton;
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.DescribedType;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.UnsignedLong;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
@@ -23,14 +22,13 @@ import org.apache.qpid.proton.amqp.messaging.Released;
 import org.apache.qpid.proton.amqp.transaction.Declared;
 import org.apache.qpid.proton.amqp.transport.DeliveryState;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
-import org.apache.qpid.proton.codec.AMQPDefinedTypes;
-import org.apache.qpid.proton.codec.DescribedTypeConstructor;
 import org.apache.qpid.proton.codec.impl.DataImpl;
 import org.apache.qpid.proton.engine.Delivery;
 import org.apache.qpid.proton.engine.EndpointState;
 import org.apache.qpid.proton.engine.Sender;
 import org.apache.qpid.proton.engine.impl.DeliveryImpl;
 import org.apache.qpid.proton.message.Message;
+import org.apache.qpid.proton.message.impl.MessageImpl;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -146,7 +144,7 @@ class ReactorSender implements AmqpSendLink {
     public Mono<Void> send(Message message) {
         return send(message, null);
     }
-
+/*
     @Override
     public Mono<Void> send(Message message, DeliveryState deliveryState) {
         return getLinkSize()
@@ -172,12 +170,61 @@ class ReactorSender implements AmqpSendLink {
                 }
 
                 int byteArrayOffset = encodedSize;
-                // just runs 1 time for testing
-                for (int i=0 ;i<1 ;++i) {
+                for (int i = 0; i < 1; ++i) {
                     org.apache.qpid.proton.codec.Data messageWrappedByData = DataImpl.Factory.create();
-                    messageWrappedByData.putDescribedType(new AmqpDataDescribedType(new Binary(("part-data-"+(i + 2))
-                        .getBytes())));
-                    byte[] bytesWrappedData = messageWrappedByData.encode().getArray();
+                    messageWrappedByData.putDescribedType(new AmqpDataDescribedType(new Binary(("part-data-" + (i + 2))
+                        .getBytes(UTF_8))));
+                    final byte[] bytesWrappedData = messageWrappedByData.encode().getArray();
+                    int encodedSize2 = bytesWrappedData.length;
+
+                    // append
+                    int index = byteArrayOffset;
+                    for (int j = 0; j < encodedSize2; ++j) {
+                        bytes[index++] = bytesWrappedData[j];
+                    }
+
+                    byteArrayOffset = byteArrayOffset + encodedSize2;
+
+                } //for
+
+                return send(bytes, byteArrayOffset, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
+
+                //return send(bytes, encodedSize, DeliveryImpl.DEFAULT_MESSAGE_FORMAT, deliveryState);
+            }).then();
+    }
+    */
+
+    @Override
+    public Mono<Void> send(Message message, DeliveryState deliveryState) {
+        return getLinkSize()
+            .flatMap(maxMessageSize -> {
+                final int payloadSize = messageSerializer.getSize(message);
+                final int allocationSize =
+                    Math.min(payloadSize + MAX_AMQP_HEADER_SIZE_BYTES, maxMessageSize);
+
+                //final byte[] bytes = new byte[allocationSize];
+                final byte[] bytes = new byte[maxMessageSize];
+
+                int encodedSize;
+                try {
+                    encodedSize = message.encode(bytes, 0, allocationSize);
+                } catch (BufferOverflowException exception) {
+                    final String errorMessage =
+                        String.format(Locale.US,
+                            "Error sending. Size of the payload exceeded maximum message size: %s kb",
+                            maxMessageSize / 1024);
+                    final Throwable error = new AmqpException(false, AmqpErrorCondition.LINK_PAYLOAD_SIZE_EXCEEDED,
+                        errorMessage, exception, handler.getErrorContext(sender));
+                    return Mono.error(error);
+                }
+                MessageMultiDataSectionImpl.Factory.create();
+
+                int byteArrayOffset = encodedSize;
+                for (int i = 0; i < 1; ++i) {
+                    org.apache.qpid.proton.codec.Data messageWrappedByData = DataImpl.Factory.create();
+                    messageWrappedByData.putDescribedType(new AmqpDataDescribedType(new Binary(("part-data-" + (i + 2))
+                        .getBytes(UTF_8))));
+                    final byte[] bytesWrappedData = messageWrappedByData.encode().getArray();
                     int encodedSize2 = bytesWrappedData.length;
 
                     // append

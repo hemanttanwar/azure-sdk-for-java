@@ -251,6 +251,51 @@
         "code": "java.annotation.added",
         "new": "class com.azure.storage.blob.models.PageList",
         "justification": "Annotation required to resolve deserialization bug."
+      },
+      {
+        "code": "java.method.visibilityReduced",
+        "old": "method java.util.List<com.azure.core.models.JsonPatchOperation> com.azure.core.models.JsonPatchDocument::getOperations()",
+        "new": "method java.util.List<com.azure.core.models.JsonPatchOperation> com.azure.core.models.JsonPatchDocument::getOperations()",
+        "justification": ""
+      },
+      {
+        "code": "java.method.visibilityReduced",
+        "old": "method java.lang.String com.azure.core.models.JsonPatchOperation::getFrom()",
+        "new": "method java.lang.String com.azure.core.models.JsonPatchOperation::getFrom()",
+        "justification": ""
+      },
+      {
+        "code": "java.method.visibilityReduced",
+        "old": "method com.azure.core.models.JsonPatchOperationKind com.azure.core.models.JsonPatchOperation::getOp()",
+        "new": "method com.azure.core.models.JsonPatchOperationKind com.azure.core.models.JsonPatchOperation::getOp()",
+        "justification": ""
+      },
+      {
+        "code": "java.method.visibilityReduced",
+        "old": "method java.lang.String com.azure.core.models.JsonPatchOperation::getPath()",
+        "new": "method java.lang.String com.azure.core.models.JsonPatchOperation::getPath()",
+        "justification": ""
+      },
+      {
+        "code": "java.method.visibilityReduced",
+        "old": "method com.azure.core.util.Option<java.lang.String> com.azure.core.models.JsonPatchOperation::getValue()",
+        "new": "method com.azure.core.implementation.Option<java.lang.String> com.azure.core.models.JsonPatchOperation::getValue()",
+        "justification": ""
+
+      },
+      {
+        "code": "java.class.visibilityReduced",
+        "old": "class com.azure.core.models.JsonPatchOperation",
+        "new": "class com.azure.core.models.JsonPatchOperation",
+        "justification": ""
+
+      },
+      {
+        "code": "java.class.visibilityReduced",
+        "old": "enum com.azure.core.models.JsonPatchOperationKind",
+        "new": "enum com.azure.core.models.JsonPatchOperationKind",
+        "justification": ""
+
       }
     ]
   }

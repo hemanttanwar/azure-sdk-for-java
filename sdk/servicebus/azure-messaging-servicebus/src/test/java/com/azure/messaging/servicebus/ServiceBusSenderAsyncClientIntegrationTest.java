@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -122,14 +123,14 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
      */
     @MethodSource("com.azure.messaging.servicebus.IntegrationTestBase#messagingEntityProvider")
     @ParameterizedTest
-    void nonSessionMessageBatch(MessagingEntityType entityType) {
+    void nonSessionMessageBatch(MessagingEntityType entityType) throws InterruptedException {
         // Arrange
         setSenderAndReceiver(entityType, 0, false);
-
+        final ServiceBusMessage mymessage = new ServiceBusMessage("Some Contents");
         final String messageId = UUID.randomUUID().toString();
         final CreateMessageBatchOptions options = new CreateMessageBatchOptions().setMaximumSizeInBytes(1024);
-        final List<ServiceBusMessage> messages = TestUtils.getServiceBusMessages(3, messageId, CONTENTS_BYTES);
-
+        final List<ServiceBusMessage> messages = TestUtils.getServiceBusMessages(1, messageId, CONTENTS_BYTES);
+/*
         // Assert & Act
         StepVerifier.create(sender.createMessageBatch(options)
             .flatMap(batch -> {
@@ -140,6 +141,14 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
                 return sender.sendMessages(batch).doOnSuccess(aVoid -> messagesPending.incrementAndGet());
             }))
             .verifyComplete();
+
+        sender.sendMessage(mymessage).subscribe();
+        TimeUnit.SECONDS.sleep(5);
+*/
+        receiver.receiveMessages().take(1).subscribe(messageContext -> {
+            System.out.println("!!! Test Reading " + new String(messageContext.getMessage().getBody()));
+        });
+        TimeUnit.SECONDS.sleep(60);
     }
 
     /**
@@ -508,7 +517,8 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
         this.sender = getSenderBuilder(useCredentials, entityType, entityIndex, isSessionAware, sharedConnection)
             .buildAsyncClient();
         this.receiver = getReceiverBuilder(useCredentials, entityType, entityIndex, sharedConnection)
-            .receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+            //.receiveMode(ReceiveMode.RECEIVE_AND_DELETE)
+            .disableAutoComplete()
             .buildAsyncClient();
     }
 }
