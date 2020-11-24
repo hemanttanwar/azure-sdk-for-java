@@ -29,7 +29,7 @@ public interface TestSetting {
         ? ServiceBusReceiveMode.valueOf(System.getenv("RECEIVE_MODE"))
         : ServiceBusReceiveMode.RECEIVE_AND_DELETE;
 
-    // TCN : Test case name Receive/Send/Processor
+    // TCN : Test case name Receive/Send/SendOne/Processor
     String TEST_CASE_NAME = System.getenv("TCN") != null
         ? System.getenv("TCN")
         : "Receive";
@@ -43,6 +43,21 @@ public interface TestSetting {
     long TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS = System.getenv("TTS_MS") != null
         ? Long.parseLong(System.getenv("TTS_MS"))
         : 300;
+
+    // MIOB :How many messages in one batch
+    long MESSAGES_IN_ONE_BATCH = System.getenv("MIOB") != null
+        ? Long.parseLong(System.getenv("MIOB"))
+        : 100;
+
+    // TBTS :How many batch to send
+    long TOTAL_BATCHES_TO_SEND = System.getenv("TBTS") != null
+        ? Long.parseLong(System.getenv("TBTS"))
+        : 100;
+
+    // TMTS :How many Messages to send. This is not used in batch send. Only needed for single message send api.
+    long TOTAL_MESSAGES_TO_SEND = System.getenv("TMTS") != null
+        ? Long.parseLong(System.getenv("TMTS"))
+        : 100;
 
     // QN : Name of the queue
     String QUEUE_NAME = System.getenv("QN") != null
@@ -63,6 +78,10 @@ public interface TestSetting {
     String KEY_TOTAL_MESSAGES_PER_SECONDS = "Message/S";
     String KEY_MAX_MESSAGES_TO_RECEIVE_AND_STOP = "Max messages to receive and stop";
     String KEY_TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS = "TimeToSleepBetweenEachCall_MS";
+    String KEY_MESSAGES_IN_ONE_BATCH = "MessagesInOneBatch";
+    String KEY_TOTAL_BATCHES_TO_SEND = "TotalBatchToSend";
+    String KEY_TOTAL_MESSAGES_TO_SEND = "TotalMessagesToSend";
+
 
 
 }

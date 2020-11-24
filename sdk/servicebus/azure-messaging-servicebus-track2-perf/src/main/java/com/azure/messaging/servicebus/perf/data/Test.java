@@ -16,13 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static com.azure.messaging.servicebus.perf.data.TestSetting.QUEUE_NAME;
-import static com.azure.messaging.servicebus.perf.data.TestSetting.PREFETCH;
-import static com.azure.messaging.servicebus.perf.data.TestSetting.RECEIVE_BATCH_SIZE;
-import static com.azure.messaging.servicebus.perf.data.TestSetting.CONNECTION_STRING;
-import static com.azure.messaging.servicebus.perf.data.TestSetting.RECEIVE_MODE;
-import static com.azure.messaging.servicebus.perf.data.TestSetting.KEY_TOTAL_TIME_TAKEN_MS;
 import static com.azure.messaging.servicebus.perf.data.TestSetting.*;
 
 /**
@@ -34,7 +27,8 @@ public class Test {
         ServiceBusReceiverClient receiver = null;
         reportConfig();
         try {
-            if (TEST_CASE_NAME.equalsIgnoreCase("Receive") && TEST_TYPE.equalsIgnoreCase("Performance")) {
+            if (TEST_CASE_NAME.equalsIgnoreCase("Receive")
+                && TEST_TYPE.equalsIgnoreCase("Performance")) {
                 receiver = new ServiceBusClientBuilder()
                     .connectionString(CONNECTION_STRING)
                     .receiver()
@@ -45,7 +39,8 @@ public class Test {
 
                 this.testReceivePerformance(receiver);
 
-            } else if (TEST_CASE_NAME.equalsIgnoreCase("Receive") && TEST_TYPE.equalsIgnoreCase("DataIntegrity")) {
+            } else if (TEST_CASE_NAME.equalsIgnoreCase("Receive")
+                && TEST_TYPE.equalsIgnoreCase("DataIntegrity")) {
                 receiver = new ServiceBusClientBuilder()
                     .connectionString(CONNECTION_STRING)
                     .receiver()
@@ -56,7 +51,8 @@ public class Test {
 
                 this.testReceiveDataIntegrity(receiver);
 
-            } else if (TEST_CASE_NAME.equalsIgnoreCase("Send") && TEST_TYPE.equalsIgnoreCase("DataIntegrity")) {
+            } else if (TEST_CASE_NAME.equalsIgnoreCase("Send")
+                && TEST_TYPE.equalsIgnoreCase("DataIntegrity")) {
 
                 sender = new ServiceBusClientBuilder()
                     .connectionString(CONNECTION_STRING)
@@ -66,7 +62,29 @@ public class Test {
                     .buildClient();
 
                 this.testSendDataIntegrity(sender);
-            } else {
+            } else if (TEST_CASE_NAME.equalsIgnoreCase("SendSingle")
+                && TEST_TYPE.equalsIgnoreCase("DataIntegrity")) {
+
+                sender = new ServiceBusClientBuilder()
+                    .connectionString(CONNECTION_STRING)
+                    .retryOptions(new AmqpRetryOptions().setTryTimeout(Duration.ofMillis(100000)))
+                    .sender()
+                    .queueName(QUEUE_NAME)
+                    .buildClient();
+
+                this.testSendSingleDataIntegrity(sender);
+            } else if (TEST_CASE_NAME.equalsIgnoreCase("SendSingle")
+                && TEST_TYPE.equalsIgnoreCase("Performance")) {
+
+                sender = new ServiceBusClientBuilder()
+                    .connectionString(CONNECTION_STRING)
+                    .retryOptions(new AmqpRetryOptions().setTryTimeout(Duration.ofMillis(100000)))
+                    .sender()
+                    .queueName(QUEUE_NAME)
+                    .buildClient();
+
+                this.testSendSinglePerformance(sender);
+            }else {
                 TestLogger.log("!! Oops Not Implemented .... ");
             }
         } finally {
@@ -104,7 +122,6 @@ public class Test {
         reportData(totalReceivedMessages, startTimeMS, endTimeMS);
     }
 
-
     void testReceivePerformance(ServiceBusReceiverClient receiver) throws InterruptedException {
         // Receive the messages
         int totalReceivedMessages = 0;
@@ -121,28 +138,45 @@ public class Test {
         reportData(totalReceivedMessages, startTimeMS, endTimeMS);
     }
 
-    public void testSendDataIntegrity(ServiceBusSenderClient sender) {
+    public void testSendDataIntegrity(ServiceBusSenderClient sender) throws InterruptedException {
 
-        List<ServiceBusMessage> messages = new ArrayList<ServiceBusMessage>();
-        for (int i = 1; i <= 100; i++) {
-            for (int j = 1; j <= 100; j++) {
+        List<ServiceBusMessage> messages = new ArrayList<>();
+        for (int i = 1; i <= TOTAL_BATCHES_TO_SEND; i++) {
+            for (int j = 1; j <= MESSAGES_IN_ONE_BATCH; j++) {
                 messages.add(new ServiceBusMessage("A"));
             }
             sender.sendMessages(messages);
+            TimeUnit.MILLISECONDS.sleep(TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS);
             TestLogger.log("Sent Messages:" + messages.size());
         }
     }
 
+    public void testSendSingleDataIntegrity(ServiceBusSenderClient sender) throws InterruptedException {
 
-    public static void main(String[] args) {
-        Test receiveTest = new Test();
-        try {
-
-            receiveTest.run();
-
-        } catch (Exception e) {
-            System.out.printf("%s", e.toString());
+        List<ServiceBusMessage> messages = new ArrayList<>();
+        ServiceBusMessage message = new ServiceBusMessage("A");
+        for (int j = 1; j <= TOTAL_MESSAGES_TO_SEND; j++) {
+            sender.sendMessage(message);
+            // print/log every 1K messages
+            if (j % 1000 == 0 ) {
+                TestLogger.log("Sent Messages:" + j);
+            }
         }
+        TimeUnit.MILLISECONDS.sleep(TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS);
+        TestLogger.log("Sent Messages:" + messages.size());
+
+    }
+
+    public void testSendSinglePerformance(ServiceBusSenderClient sender) throws InterruptedException {
+
+        List<ServiceBusMessage> messages = new ArrayList<>();
+        ServiceBusMessage message = new ServiceBusMessage("A");
+        for (int j = 1; j <= TOTAL_MESSAGES_TO_SEND; j++) {
+            sender.sendMessage(message);
+        }
+        TimeUnit.MILLISECONDS.sleep(TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS);
+        TestLogger.log("Sent Messages:" + messages.size());
+
     }
 
     private void reportData(long totalReceivedMessages, long startTimeMS, long endTimeMS) {
@@ -163,7 +197,7 @@ public class Test {
         System.out.println("---------------------------------");
         System.out.println("-------- Test Result ------------");
         System.out.println("---------------------------------");
-        
+
         TestLogger.logTestResult(dataToReport);
     }
 
@@ -178,5 +212,20 @@ public class Test {
         dataToReport.put(KEY_TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS, TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS);
 
         TestLogger.logTestResult(dataToReport);
+    }
+
+    /**
+     * Main
+     * @param args for the program.
+     */
+    public static void main(String[] args) {
+        Test receiveTest = new Test();
+        try {
+
+            receiveTest.run();
+
+        } catch (Exception e) {
+            System.out.printf("%s", e.toString());
+        }
     }
 }
