@@ -36,9 +36,6 @@ public class TestLogger {
             data.append(entry.getKey()).append(":").append(entry.getValue().toString()).append("\n");
         });
 
-        System.out.println("---------------------------------");
-        System.out.println("-------- Test Result ------------");
-        System.out.println("---------------------------------");
         System.out.println(data.toString());
 
     }

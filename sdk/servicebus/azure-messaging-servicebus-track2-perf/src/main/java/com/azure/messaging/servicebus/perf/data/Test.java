@@ -67,7 +67,7 @@ public class Test {
 
                 this.testSendDataIntegrity(sender);
             } else {
-                TestLogger.log("Oops Not Implemented .... ");
+                TestLogger.log("!! Oops Not Implemented .... ");
             }
         } finally {
             if (receiver != null ){
@@ -160,6 +160,10 @@ public class Test {
         dataToReport.put(KEY_TOTAL_TIME_TAKEN_MS, (endTimeMS - startTimeMS));
         dataToReport.put(KEY_TOTAL_MESSAGES_PER_SECONDS, (totalReceivedMessages * 1000.0) / (endTimeMS - startTimeMS));
 
+        System.out.println("---------------------------------");
+        System.out.println("-------- Test Result ------------");
+        System.out.println("---------------------------------");
+        
         TestLogger.logTestResult(dataToReport);
     }
 
