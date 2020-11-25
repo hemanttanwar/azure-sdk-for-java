@@ -10,12 +10,15 @@ import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverClient;
 import com.azure.messaging.servicebus.ServiceBusSenderClient;
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static com.azure.messaging.servicebus.perf.data.TestSetting.*;
 
 /**
@@ -108,10 +111,17 @@ public class Test {
             IterableStream<ServiceBusReceivedMessage> receivedMessage = receiver.receiveMessages(RECEIVE_BATCH_SIZE);
             TimeUnit.MILLISECONDS.sleep(TIME_TO_SLEEP_IN_BETWEEN_EACH_CALL_MS);
 
-            long received = receivedMessage.stream().count();
-            totalReceivedMessages += received;
+            AtomicLong received = new AtomicLong();
+                receivedMessage.stream().forEach(message -> {
+                    if (RECEIVE_MODE == ServiceBusReceiveMode.PEEK_LOCK) {
+                        receiver.complete(message);
+                    }
+
+                received.incrementAndGet();
+            });
+            totalReceivedMessages += received.get();
             // print/log every 1K messages
-            messagesSinceLastLog += received;
+            messagesSinceLastLog += received.get();
             if (messagesSinceLastLog >= 1000 ) {
                 TestLogger.log("Received Messages:" + totalReceivedMessages);
                 messagesSinceLastLog = 0;
