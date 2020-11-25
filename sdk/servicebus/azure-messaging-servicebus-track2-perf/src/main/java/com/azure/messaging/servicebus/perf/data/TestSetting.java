@@ -26,7 +26,7 @@ public interface TestSetting {
 
     // RM :Receive mode
     ServiceBusReceiveMode RECEIVE_MODE = System.getenv("RM") != null
-        ? ServiceBusReceiveMode.valueOf(System.getenv("RECEIVE_MODE"))
+        ? ServiceBusReceiveMode.valueOf(System.getenv("RM"))
         : ServiceBusReceiveMode.RECEIVE_AND_DELETE;
 
     // TCN : Test case name Receive/Send/SendOne/Processor
