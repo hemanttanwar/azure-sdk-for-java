@@ -95,14 +95,14 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
     private final Runnable onClientClose;
     private final String entityName;
     private final ServiceBusConnectionProcessor connectionProcessor;
-    private final String viaEntityName;
+    private final String transactionGroup;
 
     /**
      * Creates a new instance of this {@link ServiceBusSenderAsyncClient} that sends messages to a Service Bus entity.
      */
     ServiceBusSenderAsyncClient(String entityName, MessagingEntityType entityType,
         ServiceBusConnectionProcessor connectionProcessor, AmqpRetryOptions retryOptions, TracerProvider tracerProvider,
-        MessageSerializer messageSerializer, Runnable onClientClose, String viaEntityName) {
+        MessageSerializer messageSerializer, Runnable onClientClose, String transactionGroup) {
         // Caching the created link so we don't invoke another link creation.
         this.messageSerializer = Objects.requireNonNull(messageSerializer,
             "'messageSerializer' cannot be null.");
@@ -113,7 +113,7 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
         this.tracerProvider = tracerProvider;
         this.retryPolicy = getRetryPolicy(retryOptions);
         this.entityType = entityType;
-        this.viaEntityName = viaEntityName;
+        this.transactionGroup = transactionGroup;
         this.onClientClose = onClientClose;
     }
 
@@ -722,8 +722,8 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
     private Mono<AmqpSendLink> getSendLink() {
         return connectionProcessor
             .flatMap(connection -> {
-                if (!CoreUtils.isNullOrEmpty(viaEntityName)) {
-                    return connection.createSendLink("VIA-".concat(viaEntityName), viaEntityName, retryOptions,
+                if (!CoreUtils.isNullOrEmpty(transactionGroup)) {
+                    return connection.createSendLink(transactionGroup, entityName, retryOptions,
                         entityName);
                 } else {
                     return connection.createSendLink(entityName, entityName, retryOptions, null);

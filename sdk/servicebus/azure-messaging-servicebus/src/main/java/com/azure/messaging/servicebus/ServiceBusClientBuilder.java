@@ -116,6 +116,7 @@ public final class ServiceBusClientBuilder {
     private Scheduler scheduler;
     private AmqpTransportType transport = AmqpTransportType.AMQP;
     private SslDomain.VerifyMode verifyMode;
+    private String transactionGroup;
 
     /**
      * Keeps track of the open clients that were created from this builder when there is a shared connection.
@@ -227,6 +228,18 @@ public final class ServiceBusClientBuilder {
      */
     public ServiceBusClientBuilder proxyOptions(ProxyOptions proxyOptions) {
         this.proxyOptions = proxyOptions;
+        return this;
+    }
+
+    /**
+     * Sets the transactionGroup to use
+     *
+     * @param transactionGroup The transactionGroup to use.
+     *
+     * @return The updated {@link ServiceBusClientBuilder} object.
+     */
+    public ServiceBusClientBuilder transactionGroup(String transactionGroup) {
+        this.transactionGroup = transactionGroup;
         return this;
     }
 
@@ -618,7 +631,7 @@ public final class ServiceBusClientBuilder {
             }
 
             return new ServiceBusSenderAsyncClient(entityName, entityType, connectionProcessor, retryOptions,
-                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, null);
+                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, transactionGroup);
         }
 
         /**
@@ -1009,7 +1022,8 @@ public final class ServiceBusClientBuilder {
 
             return new ServiceBusReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), entityPath,
                 entityType, receiverOptions, connectionProcessor, ServiceBusConstants.OPERATION_TIMEOUT,
-                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, sessionManager);
+                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, sessionManager,
+                transactionGroup);
         }
 
         /**
@@ -1437,7 +1451,7 @@ public final class ServiceBusClientBuilder {
 
             return new ServiceBusReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), entityPath,
                 entityType, receiverOptions, connectionProcessor, ServiceBusConstants.OPERATION_TIMEOUT,
-                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose);
+                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, transactionGroup);
         }
     }
 

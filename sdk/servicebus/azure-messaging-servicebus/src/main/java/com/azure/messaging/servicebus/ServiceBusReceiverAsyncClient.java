@@ -109,6 +109,7 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
     // Starting at -1 because that is before the beginning of the stream.
     private final AtomicLong lastPeekedSequenceNumber = new AtomicLong(-1);
     private final AtomicReference<ServiceBusAsyncConsumer> consumer = new AtomicReference<>();
+    private final String transactionGroup;
 
     /**
      * Creates a receiver that listens to a Service Bus resource.
@@ -121,10 +122,12 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
      * @param tracerProvider Tracer for telemetry.
      * @param messageSerializer Serializes and deserializes Service Bus messages.
      * @param onClientClose Operation to run when the client completes.
+     * @param transactionGroup to be set for creating transactional client.
      */
     ServiceBusReceiverAsyncClient(String fullyQualifiedNamespace, String entityPath, MessagingEntityType entityType,
         ReceiverOptions receiverOptions, ServiceBusConnectionProcessor connectionProcessor, Duration cleanupInterval,
-        TracerProvider tracerProvider, MessageSerializer messageSerializer, Runnable onClientClose) {
+        TracerProvider tracerProvider, MessageSerializer messageSerializer, Runnable onClientClose,
+        String transactionGroup) {
         this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
             "'fullyQualifiedNamespace' cannot be null.");
         this.entityPath = Objects.requireNonNull(entityPath, "'entityPath' cannot be null.");
@@ -143,12 +146,13 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
         });
 
         this.sessionManager = null;
+        this.transactionGroup = transactionGroup;
     }
 
     ServiceBusReceiverAsyncClient(String fullyQualifiedNamespace, String entityPath, MessagingEntityType entityType,
         ReceiverOptions receiverOptions, ServiceBusConnectionProcessor connectionProcessor, Duration cleanupInterval,
         TracerProvider tracerProvider, MessageSerializer messageSerializer, Runnable onClientClose,
-        ServiceBusSessionManager sessionManager) {
+        ServiceBusSessionManager sessionManager, String transactionGroup) {
         this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
             "'fullyQualifiedNamespace' cannot be null.");
         this.entityPath = Objects.requireNonNull(entityPath, "'entityPath' cannot be null.");
@@ -166,6 +170,7 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
                 renewal.getSessionId(), renewal.getStatus(), renewal.getThrowable());
             renewal.close();
         });
+        this.transactionGroup = transactionGroup;
     }
 
     /**
@@ -1175,7 +1180,7 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
                 return connection.createReceiveLink(linkName, entityPath, receiverOptions.getReceiveMode(),
                     null, entityType, receiverOptions.getSessionId());
             } else {
-                return connection.createReceiveLink(linkName, entityPath, receiverOptions.getReceiveMode(),
+                return connection.createReceiveLink(transactionGroup!= null? transactionGroup : linkName, entityPath, receiverOptions.getReceiveMode(),
                     null, entityType);
             }
         })
