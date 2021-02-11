@@ -316,6 +316,14 @@ public final class  BinaryData {
         return serializer.deserialize(jsonStream, typeReference);
     }
 
+    public <T> T toObject(Class<T> tClass, ObjectSerializer serializer) {
+        Objects.requireNonNull(tClass, "'typeReference' cannot be null.");
+        Objects.requireNonNull(serializer, "'serializer' cannot be null.");
+
+        InputStream jsonStream = new ByteArrayInputStream(this.data);
+        return serializer.deserialize(jsonStream, TypeReference.createInstance(tClass));
+    }
+
     /**
      * Return a {@link Mono} by deserializing the bytes into the {@link Object} of given type after applying the
      * provided {@link ObjectSerializer} on the {@link BinaryData}. The type, represented by {@link TypeReference},
@@ -372,6 +380,13 @@ public final class  BinaryData {
 
         InputStream jsonStream = new ByteArrayInputStream(this.data);
         return getDefaultSerializer().deserialize(jsonStream, typeReference);
+    }
+
+    public <T> T toObject(Class<T> typeReference) {
+        Objects.requireNonNull(typeReference, "'typeReference' cannot be null.");
+
+        InputStream jsonStream = new ByteArrayInputStream(this.data);
+        return getDefaultSerializer().deserialize(jsonStream, TypeReference.createInstance(typeReference));
     }
 
     /**

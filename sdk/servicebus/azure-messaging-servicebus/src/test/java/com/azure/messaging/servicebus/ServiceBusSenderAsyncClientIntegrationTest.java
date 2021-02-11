@@ -3,8 +3,11 @@
 
 package com.azure.messaging.servicebus;
 
+import com.azure.core.amqp.AmqpTransportType;
+import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.implementation.MessagingEntityType;
+import com.azure.messaging.servicebus.models.CompleteOptions;
 import com.azure.messaging.servicebus.models.CreateMessageBatchOptions;
 import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import org.junit.jupiter.api.Assertions;
@@ -15,13 +18,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -476,6 +482,145 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
             .thenAwait(shortWait)
             .thenCancel()
             .verify();
+    }
+
+    /**
+     * Verifies that we can send message to final destination using via-queue.
+     */
+    @Test
+    void transactionQueueMessageSendTestXXXForGist(){
+        String queue1 = "queue-1";
+        String queue2 = "queue-2";
+        final int total = 1;
+
+        final String messageId = UUID.randomUUID().toString();
+        final byte[] CONTENTS_BYTES1 = "Some-contents 1".getBytes(StandardCharsets.UTF_8);
+        final byte[] CONTENTS_BYTES2 = "Some-contents 2".getBytes(StandardCharsets.UTF_8);
+
+        final List<ServiceBusMessage> messages1 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES1);
+        final List<ServiceBusMessage> messages2 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES2);
+
+        ServiceBusClientBuilder builder = new ServiceBusClientBuilder()
+            .scheduler(Schedulers.parallel());
+
+        final ServiceBusSenderClient destination1Sender = builder.sender()
+            .queueName(queue1)
+            .buildClient();
+
+        final ServiceBusSenderClient destination2Sender = builder
+            .transactionGroup("orderGroup1")
+            .sender()
+            .queueName(queue2)
+            .buildClient();
+
+        final ServiceBusReceiverClient destination1Receiver = builder
+            .transactionGroup("orderGroup1")
+            .receiver()
+            .queueName(queue1)
+            .disableAutoComplete()
+            .buildClient();
+
+        ServiceBusTransactionContext transactionId = destination1Sender.createTransaction();
+        destination1Sender.sendMessages(messages1, transactionId);
+        destination2Sender.sendMessages(messages2, transactionId);
+
+        destination1Receiver.receiveMessages(2).forEach(message-> {
+            destination1Receiver.complete(message, new CompleteOptions().setTransactionContext(transactionId));
+        });
+
+        // Commit the transaction
+        destination1Receiver.commitTransaction(transactionId);
+  }
+
+    @Test
+    void transactionQueueMessageSendTestXXX() throws InterruptedException {
+        // Arrange
+        final boolean useCredentials = false;
+        final Duration shortTimeout = Duration.ofSeconds(15);
+        final int viaIntermediateEntity = TestUtils.USE_CASE_SEND_VIA_QUEUE_1;
+        //final int destinationEntity = TestUtils.USE_CASE_SEND_VIA_QUEUE_2;
+        int destination1_Entity = 0;
+        int destination2_Entity = 2;
+        int destination3_Entity = 3;
+        String queue1 = "queue-1";
+        String queue2 = "queue-2";
+        String queue3 = "queue-3";
+        String queue4 = "queue-4";
+
+        final boolean shareConnection = true;
+        final MessagingEntityType entityType = MessagingEntityType.QUEUE;
+        final boolean isSessionEnabled = false;
+        final String messageId = UUID.randomUUID().toString();
+        final int total = 1;
+        final byte[] CONTENTS_BYTES1 = "Some-contents 1".getBytes(StandardCharsets.UTF_8);
+
+        final byte[] CONTENTS_BYTES2 = "Some-contents 2".getBytes(StandardCharsets.UTF_8);
+        final byte[] CONTENTS_BYTES3 = "Some-contents 3".getBytes(StandardCharsets.UTF_8);
+
+        final List<ServiceBusMessage> messages1 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES1);
+        final List<ServiceBusMessage> messages2 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES2);
+        final List<ServiceBusMessage> messages3 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES3);
+
+        ServiceBusClientBuilder builder = getBuilder(useCredentials);
+
+        final ServiceBusSenderAsyncClient destination1_Sender = builder.sender()
+            .queueName(queue1)
+            .buildAsyncClient();
+
+        final ServiceBusSenderAsyncClient destination2_Sender = builder
+            .transactionGroup("orderGroup1")
+            .sender()
+            .queueName(queue2)
+            .buildAsyncClient();
+
+        final ServiceBusSenderAsyncClient destination3_Sender = builder
+            .transactionGroup("orderGroup1")
+            .sender()
+            .queueName(queue3)
+            .buildAsyncClient();
+
+        final ServiceBusSenderAsyncClient destination4_Sender = builder
+            .transactionGroup("orderGroup1")
+            .sender()
+            .queueName(queue4)
+            .buildAsyncClient();
+
+        final ServiceBusReceiverAsyncClient destination1_receiver = builder
+            .transactionGroup("orderGroup1")
+            .receiver()
+            .queueName(queue1)
+            .disableAutoComplete()
+            .buildAsyncClient();
+
+        System.out.println("!!!! Test creating transaction");
+        ServiceBusTransactionContext transactionId = destination1_Sender.createTransaction().block();
+
+        System.out.println("!!!! Test sending destination 1.");
+        StepVerifier.create(destination1_Sender.sendMessages(messages1, transactionId)).verifyComplete();
+
+        System.out.println("!!!! Test sending destination 2.");
+        destination2_Sender
+            .sendMessages(messages2, transactionId)
+            .subscribe();
+
+
+        System.out.println("!!!! Test receiving from destination 1.");
+        destination1_receiver.receiveMessages().flatMap(message-> {
+            System.out.println("!!!! Test Receiver received from queue1, SQ " + message.getSequenceNumber());
+            return destination1_receiver.complete(message, new CompleteOptions().setTransactionContext(transactionId))
+                .thenReturn(message);
+        }).subscribe(message -> {
+            System.out.println("!!!! Test Receiver completed message queue1, SQ " + message.getSequenceNumber());
+        });
+
+        TimeUnit.SECONDS.sleep(1);
+
+        System.out.println("!!!! Test sending destination 3.");
+        destination3_Sender.sendMessages(messages3, transactionId)
+            .then(destination3_Sender.rollbackTransaction(transactionId))
+            .subscribe();
+
+        TimeUnit.SECONDS.sleep(6);
     }
 
     /**

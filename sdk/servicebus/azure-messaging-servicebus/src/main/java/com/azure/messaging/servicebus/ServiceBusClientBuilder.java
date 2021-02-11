@@ -1087,7 +1087,7 @@ public final class ServiceBusClientBuilder {
 
             return new ServiceBusSessionReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(),
                 entityPath, entityType, receiverOptions, connectionProcessor, tracerProvider, messageSerializer,
-                ServiceBusClientBuilder.this::onClientClose);
+                ServiceBusClientBuilder.this::onClientClose, transactionGroup);
         }
     }
 
