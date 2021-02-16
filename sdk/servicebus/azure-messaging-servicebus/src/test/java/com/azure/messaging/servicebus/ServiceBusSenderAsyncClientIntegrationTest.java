@@ -556,37 +556,39 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
 
         final byte[] CONTENTS_BYTES2 = "Some-contents 2".getBytes(StandardCharsets.UTF_8);
         final byte[] CONTENTS_BYTES3 = "Some-contents 3".getBytes(StandardCharsets.UTF_8);
-
+        final String transactionGroup = "coordinator1";
         final List<ServiceBusMessage> messages1 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES1);
         final List<ServiceBusMessage> messages2 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES2);
         final List<ServiceBusMessage> messages3 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES3);
 
         ServiceBusClientBuilder builder = getBuilder(useCredentials);
 
-        final ServiceBusSenderAsyncClient destination1_Sender = builder.sender()
+        final ServiceBusSenderAsyncClient destination1_Sender = builder
+            .transactionGroup(transactionGroup)
+            .sender()
             .queueName(queue1)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination2_Sender = builder
-            .transactionGroup("orderGroup1")
+            .transactionGroup(transactionGroup)
             .sender()
             .queueName(queue2)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination3_Sender = builder
-            .transactionGroup("orderGroup1")
+            .transactionGroup(transactionGroup)
             .sender()
             .queueName(queue3)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination4_Sender = builder
-            .transactionGroup("orderGroup1")
+            .transactionGroup(transactionGroup)
             .sender()
             .queueName(queue4)
             .buildAsyncClient();
 
         final ServiceBusReceiverAsyncClient destination1_receiver = builder
-            .transactionGroup("orderGroup1")
+            .transactionGroup(transactionGroup)
             .receiver()
             .queueName(queue1)
             .disableAutoComplete()
@@ -616,11 +618,19 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
         TimeUnit.SECONDS.sleep(1);
 
         System.out.println("!!!! Test sending destination 3.");
-        destination3_Sender.sendMessages(messages3, transactionId)
-            .then(destination3_Sender.rollbackTransaction(transactionId))
+        destination3_Sender.commitTransaction(transactionId)
+            .doOnSuccess(a -> {
+                System.out.println("!!!! rollbackTransaction     complete " + a);
+            }).subscribe();
+        /*destination3_Sender.sendMessages(messages3, transactionId)
+            .then(destination3_Sender.commitTransaction(transactionId)
+            .doOnSuccess(a -> {
+                System.out.println("!!!! rollbackTransaction     complete " + a);
+            }))
             .subscribe();
+        */
 
-        TimeUnit.SECONDS.sleep(6);
+        TimeUnit.SECONDS.sleep(16);
     }
 
     /**

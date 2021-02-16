@@ -500,8 +500,11 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
         }
 
         return connectionProcessor
-            .flatMap(connection -> connection.createSession(TRANSACTION_LINK_NAME))
-            .flatMap(transactionSession -> transactionSession.createTransaction())
+            .flatMap(connection -> connection.createSession(transactionGroup != null ? transactionGroup: TRANSACTION_LINK_NAME))
+            .flatMap(transactionSession -> {
+                System.out.println("!!!!  Sender Async client createTransaction transactionSession {} {} " + transactionSession.getSessionName() + "," + transactionSession);
+                return transactionSession.createTransaction();
+            })
             .map(transaction -> new ServiceBusTransactionContext(transaction.getTransactionId()));
     }
 
@@ -525,9 +528,12 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
         }
 
         return connectionProcessor
-            .flatMap(connection -> connection.createSession(TRANSACTION_LINK_NAME))
-            .flatMap(transactionSession -> transactionSession.commitTransaction(new AmqpTransaction(
-                transactionContext.getTransactionId())));
+            .flatMap(connection -> connection.createSession(transactionGroup != null ? transactionGroup : TRANSACTION_LINK_NAME))
+            .flatMap(transactionSession -> {
+                System.out.println("!!!!  Sender Async client commitTransaction transactionSession {} {} " + transactionSession.getSessionName() + "," + transactionSession);
+                return transactionSession.commitTransaction(new AmqpTransaction(
+                    transactionContext.getTransactionId()));
+            });
     }
 
     /**
@@ -550,7 +556,7 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
         }
 
         return connectionProcessor
-            .flatMap(connection -> connection.createSession(TRANSACTION_LINK_NAME))
+            .flatMap(connection -> connection.createSession(transactionGroup != null? transactionGroup: TRANSACTION_LINK_NAME))
             .flatMap(transactionSession -> transactionSession.rollbackTransaction(new AmqpTransaction(
                 transactionContext.getTransactionId())));
     }
@@ -723,8 +729,8 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
         return connectionProcessor
             .flatMap(connection -> {
                 if (!CoreUtils.isNullOrEmpty(transactionGroup)) {
-                    return connection.createSendLink(TRANSACTION_LINK_NAME, entityName, retryOptions,
-                        entityName);
+                    return connection.createSendLink(transactionGroup, entityName, retryOptions,
+                        null);
                 } else {
                     return connection.createSendLink(entityName, entityName, retryOptions, null);
                 }
