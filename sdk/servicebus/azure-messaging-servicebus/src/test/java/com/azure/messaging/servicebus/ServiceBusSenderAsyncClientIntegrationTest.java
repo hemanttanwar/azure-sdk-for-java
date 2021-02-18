@@ -484,56 +484,8 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
             .verify();
     }
 
-    /**
-     * Verifies that we can send message to final destination using via-queue.
-     */
     @Test
-    void transactionQueueMessageSendTestXXXForGist(){
-        String queue1 = "queue-1";
-        String queue2 = "queue-2";
-        final int total = 1;
-
-        final String messageId = UUID.randomUUID().toString();
-        final byte[] CONTENTS_BYTES1 = "Some-contents 1".getBytes(StandardCharsets.UTF_8);
-        final byte[] CONTENTS_BYTES2 = "Some-contents 2".getBytes(StandardCharsets.UTF_8);
-
-        final List<ServiceBusMessage> messages1 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES1);
-        final List<ServiceBusMessage> messages2 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES2);
-
-        ServiceBusClientBuilder builder = new ServiceBusClientBuilder()
-            .scheduler(Schedulers.parallel());
-
-        final ServiceBusSenderClient destination1Sender = builder.sender()
-            .queueName(queue1)
-            .buildClient();
-
-        final ServiceBusSenderClient destination2Sender = builder
-            .transactionGroup("orderGroup1")
-            .sender()
-            .queueName(queue2)
-            .buildClient();
-
-        final ServiceBusReceiverClient destination1Receiver = builder
-            .transactionGroup("orderGroup1")
-            .receiver()
-            .queueName(queue1)
-            .disableAutoComplete()
-            .buildClient();
-
-        ServiceBusTransactionContext transactionId = destination1Sender.createTransaction();
-        destination1Sender.sendMessages(messages1, transactionId);
-        destination2Sender.sendMessages(messages2, transactionId);
-
-        destination1Receiver.receiveMessages(2).forEach(message-> {
-            destination1Receiver.complete(message, new CompleteOptions().setTransactionContext(transactionId));
-        });
-
-        // Commit the transaction
-        destination1Receiver.commitTransaction(transactionId);
-  }
-
-    @Test
-    void transactionQueueMessageSendTestXXX() throws InterruptedException {
+    void transactionQueueMessageSendTest() throws InterruptedException {
         // Arrange
         final boolean useCredentials = false;
         final Duration shortTimeout = Duration.ofSeconds(15);
@@ -581,12 +533,6 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
             .queueName(queue3)
             .buildAsyncClient();
 
-        final ServiceBusSenderAsyncClient destination4_Sender = builder
-            .transactionGroup(transactionGroup)
-            .sender()
-            .queueName(queue4)
-            .buildAsyncClient();
-
         final ServiceBusReceiverAsyncClient destination1_receiver = builder
             .transactionGroup(transactionGroup)
             .receiver()
@@ -594,41 +540,29 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
             .disableAutoComplete()
             .buildAsyncClient();
 
-        System.out.println("!!!! Test creating transaction");
         ServiceBusTransactionContext transactionId = destination1_Sender.createTransaction().block();
 
-        System.out.println("!!!! Test sending destination 1.");
         StepVerifier.create(destination1_Sender.sendMessages(messages1, transactionId)).verifyComplete();
 
-        System.out.println("!!!! Test sending destination 2.");
         destination2_Sender
             .sendMessages(messages2, transactionId)
-            .subscribe();
+            .block();
 
-
-        System.out.println("!!!! Test receiving from destination 1.");
-        destination1_receiver.receiveMessages().flatMap(message-> {
-            System.out.println("!!!! Test Receiver received from queue1, SQ " + message.getSequenceNumber());
+        destination1_receiver.receiveMessages().take(1).flatMap(message-> {
             return destination1_receiver.complete(message, new CompleteOptions().setTransactionContext(transactionId))
                 .thenReturn(message);
         }).subscribe(message -> {
-            System.out.println("!!!! Test Receiver completed message queue1, SQ " + message.getSequenceNumber());
+            System.out.println("Test Receiver completed message queue1, SQ " + message.getSequenceNumber());
         });
 
-        TimeUnit.SECONDS.sleep(1);
+        TimeUnit.SECONDS.sleep(8);
 
-        System.out.println("!!!! Test sending destination 3.");
-        destination3_Sender.commitTransaction(transactionId)
-            .doOnSuccess(a -> {
-                System.out.println("!!!! rollbackTransaction     complete " + a);
-            }).subscribe();
-        /*destination3_Sender.sendMessages(messages3, transactionId)
+        destination3_Sender.sendMessages(messages3, transactionId)
             .then(destination3_Sender.commitTransaction(transactionId)
             .doOnSuccess(a -> {
                 System.out.println("!!!! rollbackTransaction     complete " + a);
             }))
             .subscribe();
-        */
 
         TimeUnit.SECONDS.sleep(16);
     }
