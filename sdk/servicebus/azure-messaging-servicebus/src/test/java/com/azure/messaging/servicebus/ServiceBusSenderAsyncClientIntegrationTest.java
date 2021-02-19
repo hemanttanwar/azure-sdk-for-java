@@ -516,26 +516,26 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
         ServiceBusClientBuilder builder = getBuilder(useCredentials);
 
         final ServiceBusSenderAsyncClient destination1_Sender = builder
-            .transactionGroup(transactionGroup)
             .sender()
+            .transactionGroup(transactionGroup)
             .queueName(queue1)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination2_Sender = builder
-            .transactionGroup(transactionGroup)
             .sender()
+            .transactionGroup(transactionGroup)
             .queueName(queue2)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination3_Sender = builder
-            .transactionGroup(transactionGroup)
             .sender()
+            .transactionGroup(transactionGroup)
             .queueName(queue3)
             .buildAsyncClient();
 
         final ServiceBusReceiverAsyncClient destination1_receiver = builder
-            .transactionGroup(transactionGroup)
             .receiver()
+            .transactionGroup(transactionGroup)
             .queueName(queue1)
             .disableAutoComplete()
             .buildAsyncClient();

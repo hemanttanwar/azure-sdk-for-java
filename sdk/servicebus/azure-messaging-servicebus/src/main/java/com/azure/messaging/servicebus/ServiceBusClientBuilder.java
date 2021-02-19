@@ -116,7 +116,6 @@ public final class ServiceBusClientBuilder {
     private Scheduler scheduler;
     private AmqpTransportType transport = AmqpTransportType.AMQP;
     private SslDomain.VerifyMode verifyMode;
-    private String transactionGroup;
 
     /**
      * Keeps track of the open clients that were created from this builder when there is a shared connection.
@@ -228,18 +227,6 @@ public final class ServiceBusClientBuilder {
      */
     public ServiceBusClientBuilder proxyOptions(ProxyOptions proxyOptions) {
         this.proxyOptions = proxyOptions;
-        return this;
-    }
-
-    /**
-     * Sets the transactionGroup to use
-     *
-     * @param transactionGroup The transactionGroup to use.
-     *
-     * @return The updated {@link ServiceBusClientBuilder} object.
-     */
-    public ServiceBusClientBuilder transactionGroup(String transactionGroup) {
-        this.transactionGroup = transactionGroup;
         return this;
     }
 
@@ -570,6 +557,7 @@ public final class ServiceBusClientBuilder {
     public final class ServiceBusSenderClientBuilder {
         private String queueName;
         private String topicName;
+        private String transactionGroup;
 
         private ServiceBusSenderClientBuilder() {
         }
@@ -595,6 +583,18 @@ public final class ServiceBusClientBuilder {
          */
         public ServiceBusSenderClientBuilder topicName(String topicName) {
             this.topicName = topicName;
+            return this;
+        }
+
+        /**
+         * Sets the transactionGroup to use
+         *
+         * @param transactionGroup The transactionGroup to use.
+         *
+         * @return The updated {@link ServiceBusSenderClientBuilder} object.
+         */
+        public ServiceBusSenderClientBuilder transactionGroup(String transactionGroup) {
+            this.transactionGroup = transactionGroup;
             return this;
         }
 
@@ -768,6 +768,18 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
+         * Sets the transactionGroup to use
+         *
+         * @param transactionGroup The transactionGroup to use.
+         *
+         * @return The updated {@link ServiceBusSessionProcessorClientBuilder} object.
+         */
+        public ServiceBusSessionProcessorClientBuilder transactionGroup(String transactionGroup) {
+            sessionReceiverClientBuilder.transactionGroup(transactionGroup);
+            return this;
+        }
+
+        /**
          * The message processing callback for the processor that will be executed when a message is received.
          * @param processMessage The message processing consumer that will be executed when a message is received.
          *
@@ -860,6 +872,7 @@ public final class ServiceBusClientBuilder {
         private ServiceBusReceiveMode receiveMode = ServiceBusReceiveMode.PEEK_LOCK;
         private String subscriptionName;
         private String topicName;
+        private String transactionGroup;
         private Duration maxAutoLockRenewDuration = MAX_LOCK_RENEW_DEFAULT_DURATION;
 
         private ServiceBusSessionReceiverClientBuilder() {
@@ -981,6 +994,18 @@ public final class ServiceBusClientBuilder {
          */
         public ServiceBusSessionReceiverClientBuilder topicName(String topicName) {
             this.topicName = topicName;
+            return this;
+        }
+
+        /**
+         * Sets the transactionGroup to use
+         *
+         * @param transactionGroup The transactionGroup to use.
+         *
+         * @return The updated {@link ServiceBusSessionReceiverClientBuilder} object.
+         */
+        public ServiceBusSessionReceiverClientBuilder transactionGroup(String transactionGroup) {
+            this.transactionGroup = transactionGroup;
             return this;
         }
 
@@ -1235,6 +1260,18 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
+         * Sets the transactionGroup to use
+         *
+         * @param transactionGroup The transactionGroup to use.
+         *
+         * @return The updated {@link ServiceBusProcessorClientBuilder} object.
+         */
+        public ServiceBusProcessorClientBuilder transactionGroup(String transactionGroup) {
+            serviceBusReceiverClientBuilder.transactionGroup(transactionGroup);
+            return this;
+        }
+
+        /**
          * Creates Service Bus message processor responsible for reading {@link ServiceBusReceivedMessage
          * messages} from a specific queue or subscription.
          *
@@ -1272,6 +1309,7 @@ public final class ServiceBusClientBuilder {
         private ServiceBusReceiveMode receiveMode = ServiceBusReceiveMode.PEEK_LOCK;
         private String subscriptionName;
         private String topicName;
+        private String transactionGroup;
         private Duration maxAutoLockRenewDuration = MAX_LOCK_RENEW_DEFAULT_DURATION;
 
         private ServiceBusReceiverClientBuilder() {
@@ -1388,6 +1426,18 @@ public final class ServiceBusClientBuilder {
          */
         public ServiceBusReceiverClientBuilder topicName(String topicName) {
             this.topicName = topicName;
+            return this;
+        }
+
+        /**
+         * Sets the transactionGroup to use
+         *
+         * @param transactionGroup The transactionGroup to use.
+         *
+         * @return The updated {@link ServiceBusReceiverClientBuilder} object.
+         */
+        public ServiceBusReceiverClientBuilder transactionGroup(String transactionGroup) {
+            this.transactionGroup = transactionGroup;
             return this;
         }
 
