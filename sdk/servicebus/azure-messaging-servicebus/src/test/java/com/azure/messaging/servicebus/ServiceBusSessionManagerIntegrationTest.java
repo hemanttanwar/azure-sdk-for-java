@@ -157,6 +157,7 @@ class ServiceBusSessionManagerIntegrationTest extends IntegrationTestBase {
             .block();
 
         destination1_receiver.receiveMessages().take(1).flatMap(message-> {
+            System.out.println("!!!! Received completed message queue1, SQ " + message.getSequenceNumber());
             return destination1_receiver.complete(message, new CompleteOptions().setTransactionContext(transactionId))
                 .thenReturn(message);
         }).subscribe(message -> {
@@ -174,7 +175,6 @@ class ServiceBusSessionManagerIntegrationTest extends IntegrationTestBase {
 
         TimeUnit.SECONDS.sleep(16);
     }
-
 
     /**
      * Sets the sender and receiver. If session is enabled, then a single-named session receiver is created.
