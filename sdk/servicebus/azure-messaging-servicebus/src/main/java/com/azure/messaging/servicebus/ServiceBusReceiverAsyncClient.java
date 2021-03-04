@@ -90,7 +90,7 @@ import static com.azure.messaging.servicebus.implementation.Messages.INVALID_OPE
 public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
     private static final DeadLetterOptions DEFAULT_DEAD_LETTER_OPTIONS = new DeadLetterOptions();
     private static final String TRANSACTION_LINK_NAME = "coordinator";
-    private static final String CROSS_ENTITY_TRANSACTION_LINK_NAME = "crossentity-coordinator";
+    private static final String CROSS_ENTITY_TRANSACTION_LINK_NAME = "coordinator";
 
     private final LockContainer<LockRenewalOperation> renewalContainer;
     private final AtomicBoolean isDisposed = new AtomicBoolean();
@@ -1178,9 +1178,10 @@ public final class ServiceBusReceiverAsyncClient implements AutoCloseable {
 
         final Flux<ServiceBusReceiveLink> receiveLink = connectionProcessor.flatMap(connection -> {
             if (receiverOptions.isSessionReceiver()) {
-                return connection.createReceiveLink(linkName, entityPath, receiverOptions.getReceiveMode(),
+                return connection.createReceiveLink(enableCrossEntityTransactions ? CROSS_ENTITY_TRANSACTION_LINK_NAME : linkName, entityPath, receiverOptions.getReceiveMode(),
                     null, entityType, receiverOptions.getSessionId());
             } else {
+                System.out.println(getClass().getName() + " !!!! getOrCreateConsumer enableCrossEntityTransactions " + enableCrossEntityTransactions);
                 return connection.createReceiveLink(enableCrossEntityTransactions ? CROSS_ENTITY_TRANSACTION_LINK_NAME : linkName,
                     entityPath, receiverOptions.getReceiveMode(),null, entityType);
             }

@@ -168,9 +168,10 @@ public class ServiceBusReactorAmqpConnection extends ReactorConnection implement
     @Override
     public Mono<ServiceBusReceiveLink> createReceiveLink(String linkName, String entityPath,
         ServiceBusReceiveMode receiveMode, String transferEntityPath, MessagingEntityType entityType) {
+        // createSession(entityPath)-> createSession(linkName)
         return createSession(entityPath).cast(ServiceBusSession.class)
             .flatMap(session -> {
-                logger.verbose("Get or create consumer for path: '{}'", entityPath);
+                logger.verbose("Get or create consumer for path: '{}', session '{}'", entityPath, session);
                 final AmqpRetryPolicy retryPolicy = RetryUtil.getRetryPolicy(retryOptions);
 
                 return session.createConsumer(linkName, entityPath, entityType, retryOptions.getTryTimeout(),
@@ -195,9 +196,10 @@ public class ServiceBusReactorAmqpConnection extends ReactorConnection implement
     public Mono<ServiceBusReceiveLink> createReceiveLink(String linkName, String entityPath,
         ServiceBusReceiveMode receiveMode, String transferEntityPath, MessagingEntityType entityType,
         String sessionId) {
-        return createSession(entityPath).cast(ServiceBusSession.class)
+        //createSession(entityPath) ->  createSession(linkName)
+        return createSession(linkName).cast(ServiceBusSession.class)
             .flatMap(session -> {
-                logger.verbose("Get or create consumer for path: '{}'", entityPath);
+                logger.verbose("Get or create consumer for path: '{}' session '{}'.", entityPath, session);
                 final AmqpRetryPolicy retryPolicy = RetryUtil.getRetryPolicy(retryOptions);
 
                 return session.createConsumer(linkName, entityPath, entityType, retryOptions.getTryTimeout(),

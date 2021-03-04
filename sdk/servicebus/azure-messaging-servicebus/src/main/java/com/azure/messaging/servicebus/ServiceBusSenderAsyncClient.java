@@ -77,7 +77,7 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
      */
     static final int MAX_MESSAGE_LENGTH_BYTES = 256 * 1024;
     private static final String TRANSACTION_LINK_NAME = "coordinator";
-    private static final String CROSS_ENTITY_TRANSACTION_LINK_NAME = "crossentity-coordinator";
+    private static final String CROSS_ENTITY_TRANSACTION_LINK_NAME = "coordinator";
     // Please see <a href=https://docs.microsoft.com/en-us/azure/azure-resource-manager/management/azure-services-resource-providers>here</a>
     // for more information on Azure resource provider namespaces.
     private static final String AZ_TRACING_NAMESPACE_VALUE = "Microsoft.ServiceBus";
@@ -499,12 +499,16 @@ public final class ServiceBusSenderAsyncClient implements AutoCloseable {
             return monoError(logger, new IllegalStateException(
                 String.format(INVALID_OPERATION_DISPOSED_SENDER, "createTransaction")));
         }
+        System.out.println(getClass().getName() + " !!!! enableCrossEntityTransactions: " + enableCrossEntityTransactions);
 
         return connectionProcessor
             .flatMap(connection -> connection.createSession(enableCrossEntityTransactions
                 ? CROSS_ENTITY_TRANSACTION_LINK_NAME
                 : TRANSACTION_LINK_NAME))
-            .flatMap(transactionSession -> transactionSession.createTransaction())
+            .flatMap(transactionSession -> {
+                System.out.println(getClass().getName() + " !!!! transactionSession: " + transactionSession.getSessionName() + " -> " + transactionSession);
+                return transactionSession.createTransaction();
+            })
             .map(transaction -> new ServiceBusTransactionContext(transaction.getTransactionId()));
     }
 

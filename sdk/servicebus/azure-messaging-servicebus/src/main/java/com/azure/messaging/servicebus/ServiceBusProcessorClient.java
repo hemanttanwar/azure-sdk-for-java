@@ -322,7 +322,7 @@ public final class ServiceBusProcessorClient implements AutoCloseable {
         }
     }
 
-    private void restartMessageReceiver() {
+    public void restartMessageReceiver() {
         if (!isRunning()) {
             return;
         }
