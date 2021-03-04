@@ -3,8 +3,6 @@
 
 package com.azure.messaging.servicebus;
 
-import com.azure.core.amqp.AmqpTransportType;
-import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.messaging.servicebus.implementation.MessagingEntityType;
 import com.azure.messaging.servicebus.models.CompleteOptions;
@@ -18,7 +16,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.nio.charset.StandardCharsets;
@@ -508,7 +505,6 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
 
         final byte[] CONTENTS_BYTES2 = "Some-contents 2".getBytes(StandardCharsets.UTF_8);
         final byte[] CONTENTS_BYTES3 = "Some-contents 3".getBytes(StandardCharsets.UTF_8);
-        final String transactionGroup = "coordinator1";
         final List<ServiceBusMessage> messages1 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES1);
         final List<ServiceBusMessage> messages2 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES2);
         final List<ServiceBusMessage> messages3 = TestUtils.getServiceBusMessages(total, messageId, CONTENTS_BYTES3);
@@ -517,25 +513,25 @@ class ServiceBusSenderAsyncClientIntegrationTest extends IntegrationTestBase {
 
         final ServiceBusSenderAsyncClient destination1_Sender = builder
             .sender()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue1)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination2_Sender = builder
             .sender()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue2)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination3_Sender = builder
             .sender()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue3)
             .buildAsyncClient();
 
         final ServiceBusReceiverAsyncClient destination1_receiver = builder
             .receiver()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue1)
             .disableAutoComplete()
             .buildAsyncClient();

@@ -128,19 +128,19 @@ class ServiceBusSessionManagerIntegrationTest extends IntegrationTestBase {
 
         final ServiceBusSenderAsyncClient destination1_Sender = builder
             .sender()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue1)
             .buildAsyncClient();
 
         final ServiceBusSenderAsyncClient destination2_Sender = builder
             .sender()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue2)
             .buildAsyncClient();
 
         final ServiceBusReceiverAsyncClient destination1_receiver = builder
             .sessionReceiver()
-            .transactionGroup(transactionGroup)
+            .enableCrossEntityTransactions()
             .queueName(queue1)
             .disableAutoComplete()
             .buildAsyncClient()

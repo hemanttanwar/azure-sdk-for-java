@@ -46,12 +46,12 @@ public final class ServiceBusSessionReceiverAsyncClient implements AutoCloseable
     private final Runnable onClientClose;
     private final ServiceBusSessionManager unNamedSessionManager;  // for acceptNextSession()
     private final ClientLogger logger = new ClientLogger(ServiceBusSessionReceiverAsyncClient.class);
-    private final String transactionGroup;
+    private final boolean enableCrossEntityTransactions;
 
     ServiceBusSessionReceiverAsyncClient(String fullyQualifiedNamespace, String entityPath,
         MessagingEntityType entityType, ReceiverOptions receiverOptions,
         ServiceBusConnectionProcessor connectionProcessor, TracerProvider tracerProvider,
-        MessageSerializer messageSerializer, Runnable onClientClose, String transactionGroup) {
+        MessageSerializer messageSerializer, Runnable onClientClose, boolean enableCrossEntityTransactions) {
         this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
             "'fullyQualifiedNamespace' cannot be null.");
         this.entityPath = Objects.requireNonNull(entityPath, "'entityPath' cannot be null.");
@@ -63,7 +63,7 @@ public final class ServiceBusSessionReceiverAsyncClient implements AutoCloseable
         this.onClientClose = Objects.requireNonNull(onClientClose, "'onClientClose' cannot be null.");
         this.unNamedSessionManager = new ServiceBusSessionManager(entityPath, entityType, connectionProcessor,
             tracerProvider, messageSerializer, receiverOptions);
-        this.transactionGroup = transactionGroup;
+        this.enableCrossEntityTransactions = enableCrossEntityTransactions;
     }
 
     /**
@@ -89,7 +89,7 @@ public final class ServiceBusSessionReceiverAsyncClient implements AutoCloseable
                     receiveLink);
                 return new ServiceBusReceiverAsyncClient(fullyQualifiedNamespace, entityPath,
                     entityType, newReceiverOptions, connectionProcessor, ServiceBusConstants.OPERATION_TIMEOUT,
-                    tracerProvider, messageSerializer, () -> { }, sessionSpecificManager, transactionGroup);
+                    tracerProvider, messageSerializer, () -> { }, sessionSpecificManager, enableCrossEntityTransactions);
             }));
     }
 
@@ -125,7 +125,7 @@ public final class ServiceBusSessionReceiverAsyncClient implements AutoCloseable
         return sessionSpecificManager.getActiveLink().map(receiveLink -> new ServiceBusReceiverAsyncClient(
             fullyQualifiedNamespace, entityPath, entityType, newReceiverOptions, connectionProcessor,
             ServiceBusConstants.OPERATION_TIMEOUT, tracerProvider, messageSerializer, () -> { },
-            sessionSpecificManager, transactionGroup));
+            sessionSpecificManager, enableCrossEntityTransactions));
     }
 
     @Override

@@ -557,7 +557,7 @@ public final class ServiceBusClientBuilder {
     public final class ServiceBusSenderClientBuilder {
         private String queueName;
         private String topicName;
-        private String transactionGroup;
+        private boolean enableCrossEntityTransactions;
 
         private ServiceBusSenderClientBuilder() {
         }
@@ -587,14 +587,13 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
-         * Sets the transactionGroup to use
+         * Enable cross entity transactions.
          *
-         * @param transactionGroup The transactionGroup to use.
          *
          * @return The updated {@link ServiceBusSenderClientBuilder} object.
          */
-        public ServiceBusSenderClientBuilder transactionGroup(String transactionGroup) {
-            this.transactionGroup = transactionGroup;
+        public ServiceBusSenderClientBuilder enableCrossEntityTransactions() {
+            this.enableCrossEntityTransactions = true;
             return this;
         }
 
@@ -631,7 +630,7 @@ public final class ServiceBusClientBuilder {
             }
 
             return new ServiceBusSenderAsyncClient(entityName, entityType, connectionProcessor, retryOptions,
-                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, transactionGroup);
+                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, enableCrossEntityTransactions);
         }
 
         /**
@@ -768,14 +767,12 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
-         * Sets the transactionGroup to use
-         *
-         * @param transactionGroup The transactionGroup to use.
+         * Enable cross entity transactions.
          *
          * @return The updated {@link ServiceBusSessionProcessorClientBuilder} object.
          */
-        public ServiceBusSessionProcessorClientBuilder transactionGroup(String transactionGroup) {
-            sessionReceiverClientBuilder.transactionGroup(transactionGroup);
+        public ServiceBusSessionProcessorClientBuilder enableCrossEntityTransactions() {
+            sessionReceiverClientBuilder.enableCrossEntityTransactions();
             return this;
         }
 
@@ -872,7 +869,7 @@ public final class ServiceBusClientBuilder {
         private ServiceBusReceiveMode receiveMode = ServiceBusReceiveMode.PEEK_LOCK;
         private String subscriptionName;
         private String topicName;
-        private String transactionGroup;
+        private boolean enableCrossEntityTransactions;
         private Duration maxAutoLockRenewDuration = MAX_LOCK_RENEW_DEFAULT_DURATION;
 
         private ServiceBusSessionReceiverClientBuilder() {
@@ -998,14 +995,12 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
-         * Sets the transactionGroup to use
-         *
-         * @param transactionGroup The transactionGroup to use.
+         * Enable cross entity transactions.
          *
          * @return The updated {@link ServiceBusSessionReceiverClientBuilder} object.
          */
-        public ServiceBusSessionReceiverClientBuilder transactionGroup(String transactionGroup) {
-            this.transactionGroup = transactionGroup;
+        public ServiceBusSessionReceiverClientBuilder enableCrossEntityTransactions() {
+            this.enableCrossEntityTransactions = true;
             return this;
         }
 
@@ -1048,7 +1043,7 @@ public final class ServiceBusClientBuilder {
             return new ServiceBusReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), entityPath,
                 entityType, receiverOptions, connectionProcessor, ServiceBusConstants.OPERATION_TIMEOUT,
                 tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, sessionManager,
-                transactionGroup);
+                enableCrossEntityTransactions);
         }
 
         /**
@@ -1112,7 +1107,7 @@ public final class ServiceBusClientBuilder {
 
             return new ServiceBusSessionReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(),
                 entityPath, entityType, receiverOptions, connectionProcessor, tracerProvider, messageSerializer,
-                ServiceBusClientBuilder.this::onClientClose, transactionGroup);
+                ServiceBusClientBuilder.this::onClientClose, enableCrossEntityTransactions);
         }
     }
 
@@ -1260,14 +1255,12 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
-         * Sets the transactionGroup to use
-         *
-         * @param transactionGroup The transactionGroup to use.
+         * Enable cross entity transactions.
          *
          * @return The updated {@link ServiceBusProcessorClientBuilder} object.
          */
-        public ServiceBusProcessorClientBuilder transactionGroup(String transactionGroup) {
-            serviceBusReceiverClientBuilder.transactionGroup(transactionGroup);
+        public ServiceBusProcessorClientBuilder enableCrossEntityTransactions() {
+            serviceBusReceiverClientBuilder.enableCrossEntityTransactions();
             return this;
         }
 
@@ -1309,7 +1302,7 @@ public final class ServiceBusClientBuilder {
         private ServiceBusReceiveMode receiveMode = ServiceBusReceiveMode.PEEK_LOCK;
         private String subscriptionName;
         private String topicName;
-        private String transactionGroup;
+        private boolean enableCrossEntityTransactions;
         private Duration maxAutoLockRenewDuration = MAX_LOCK_RENEW_DEFAULT_DURATION;
 
         private ServiceBusReceiverClientBuilder() {
@@ -1430,14 +1423,13 @@ public final class ServiceBusClientBuilder {
         }
 
         /**
-         * Sets the transactionGroup to use
+         * Enable cross entity transaction.
          *
-         * @param transactionGroup The transactionGroup to use.
          *
          * @return The updated {@link ServiceBusReceiverClientBuilder} object.
          */
-        public ServiceBusReceiverClientBuilder transactionGroup(String transactionGroup) {
-            this.transactionGroup = transactionGroup;
+        public ServiceBusReceiverClientBuilder enableCrossEntityTransactions() {
+            this.enableCrossEntityTransactions = true;
             return this;
         }
 
@@ -1501,7 +1493,7 @@ public final class ServiceBusClientBuilder {
 
             return new ServiceBusReceiverAsyncClient(connectionProcessor.getFullyQualifiedNamespace(), entityPath,
                 entityType, receiverOptions, connectionProcessor, ServiceBusConstants.OPERATION_TIMEOUT,
-                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, transactionGroup);
+                tracerProvider, messageSerializer, ServiceBusClientBuilder.this::onClientClose, enableCrossEntityTransactions);
         }
     }
 
