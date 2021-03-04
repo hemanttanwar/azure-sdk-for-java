@@ -266,6 +266,28 @@ public abstract class IntegrationTestBase extends TestBase {
         }
     }
 
+    protected ServiceBusClientBuilder.ServiceBusProcessorClientBuilder getProcessorBuilder(boolean useCredentials, MessagingEntityType entityType,
+                                                                                           int entityIndex, boolean sharedConnection) {
+
+        ServiceBusClientBuilder builder = getBuilder(useCredentials, sharedConnection);
+        switch (entityType) {
+            case QUEUE:
+                final String queueName = getQueueName(entityIndex);
+                assertNotNull(queueName, "'queueName' cannot be null.");
+
+                return builder.processor().queueName(queueName);
+            case SUBSCRIPTION:
+                final String topicName = getTopicName(entityIndex);
+                final String subscriptionName = getSubscriptionBaseName();
+                assertNotNull(topicName, "'topicName' cannot be null.");
+                assertNotNull(subscriptionName, "'subscriptionName' cannot be null.");
+
+                return builder.processor().topicName(topicName).subscriptionName(subscriptionName);
+            default:
+                throw logger.logExceptionAsError(new IllegalArgumentException("Unknown entity type: " + entityType));
+        }
+    }
+
     protected ServiceBusSessionReceiverClientBuilder getSessionReceiverBuilder(boolean useCredentials,
         MessagingEntityType entityType, int entityIndex,
         boolean sharedConnection) {
@@ -374,11 +396,14 @@ public abstract class IntegrationTestBase extends TestBase {
     private ServiceBusClientBuilder getBuilder(boolean useCredentials, boolean sharedConnection) {
         ServiceBusClientBuilder builder;
         if (sharedConnection && sharedBuilder == null) {
+            System.out.println(" !!!!  Creating new shared  builder....");
             sharedBuilder = getBuilder(useCredentials);
             builder = sharedBuilder;
         } else if (sharedConnection) {
+            System.out.println(" !!!!  Using shared builder....");
             builder = sharedBuilder;
         } else {
+            System.out.println(" !!!!  Creating new  builder....");
             builder = getBuilder(useCredentials);
         }
         return builder;
