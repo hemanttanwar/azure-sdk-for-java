@@ -44,6 +44,7 @@ public class ServiceBusProcessorIntegrationTest extends IntegrationTestBase {
         }
     }
 
+
     @Test
     public void crossTransactionEntity() throws InterruptedException {
         // Arrange
@@ -175,5 +176,53 @@ public class ServiceBusProcessorIntegrationTest extends IntegrationTestBase {
             int number = messagesPending.incrementAndGet();
             logger.info("Message Id {}. Number sent: {}", message.getMessageId(), number);
         });
+    }
+
+
+    @Test
+    public void test() throws InterruptedException {
+
+        ServiceBusProcessorClient  processorClient = new ServiceBusClientBuilder()
+            .connectionString("Endpoint=sb://sbtrack2-hemanttest-prototype.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=7uJdC9utZi6pxJ2trk4MmiiEyuHltIz1Oyejp1jZRgM=")
+            .processor()
+            .queueName("hemant-test1-6")
+            //.maxConcurrentSessions(1)
+            .processMessage(ServiceBusProcessorIntegrationTest::processMessage)
+            .processError(ServiceBusProcessorIntegrationTest::processError)
+            .buildProcessorClient();
+
+        System.out.println("Starting the processor");
+        processorClient.start();
+
+        TimeUnit.MINUTES.sleep(5);
+    }
+    private static void processMessage(ServiceBusReceivedMessageContext context) {
+        ServiceBusReceivedMessage message = context.getMessage();
+        System.out.printf("!!!! Processing message. Session: %s, Sequence #: %s. Contents: %s%n", message.getMessageId(),
+            message.getSequenceNumber(), message.getBody());
+
+        // When this message function completes, the message is automatically completed. If an exception is
+        // thrown in here, the message is abandoned.
+        // To disable this behaviour, toggle ServiceBusSessionProcessorClientBuilder.disableAutoComplete()
+        // when building the session receiver.
+    }
+
+    /**
+     * Processes an exception that occurred in the Service Bus Processor.
+     *
+     * @param context Context around the exception that occurred.
+     */
+    private static void processError(ServiceBusErrorContext context) {
+        System.out.printf(" !!!! Error when receiving messages from namespace: '%s'. Entity: '%s'%n",
+            context.getFullyQualifiedNamespace(), context.getEntityPath());
+
+        if (!(context.getException() instanceof ServiceBusException)) {
+            System.out.printf("Non-ServiceBusException occurred: %s%n", context.getException());
+            return;
+        }
+
+        ServiceBusException exception = (ServiceBusException) context.getException();
+        System.out.printf("ServiceBusException source: %s. Reason: %s. Is transient? %s%n", context.getErrorSource(),
+            exception.getReason(), exception.isTransient());
     }
 }
