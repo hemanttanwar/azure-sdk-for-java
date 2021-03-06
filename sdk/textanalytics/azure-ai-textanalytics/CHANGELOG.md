@@ -1,5 +1,24 @@
 # Release History
-## 5.1.0-beta.4 (Unreleased)
+## 5.1.0-beta.5 (Unreleased)
+### New features
+- Added `normalizedText` property to `HealthcareEntity`.
+- `AnalyzeHealthcareEntitiesResult` now exposes the property `entityRelations`, which is a list of `HealthcareEntityRelation`.
+- Added `HealthcareEntityRelation` class which will determine all the different relations between the entities as `Roles`.
+- Added `HealthcareEntityRelationRole`, which exposes `name` and `entity` of type `String` and `HealthcareEntity` respectively.
+
+### Breaking changes
+- Replace `isNegated` by `HealthcareEntityAssertion` to `HealthcareEntity` which further exposes `EntityAssociation`, `EntityCertainity` and `EntityConditionality`.
+- Renamed classes,
+  `AspectSentiment` to `TargetSentiment`, `OpinionSentiment` to `AssesssmentSentiment`, `MinedOpinion` to `SentenceOpinion`.
+- Renamed
+  `SentenceSentiment`'s method, `getMinedOpinions()` to `getOpinions()`.
+  `MinedOpinion`'s methods, `getAspect()` to `getTarget()`, `getOpinions()` to `getAssessments()`.
+- Removed property, `relatedEntities` from `HealthcareEntity`.
+- Removed constructors, 
+  `SentenceSentiment(String text, TextSentiment sentiment, SentimentConfidenceScores confidenceScores, IterableStream<MinedOpinion> minedOpinions, int offset)`,
+  `AspectSentiment(String text, TextSentiment sentiment, int offset, SentimentConfidenceScores confidenceScores)`,
+  `OpinionSentiment(String text, TextSentiment sentiment, int offset, boolean isNegated, SentimentConfidenceScores confidenceScores)`
+## 5.1.0-beta.4 (2021-02-10)
 ### New features
 - Added new classes, `StringIndexType`, `RecognizeEntitiesOptions`, `RecognizeLinkedEntitiesOptions`.
 - A new options to control how the offset and length are calculated by the service. Added `StringIndexType` to all
@@ -64,6 +83,10 @@
   `PiiEntityDomainType` to `PiiEntitiesDomainType`,
   `RecognizePiiEntityOptions` to `RecognizePiiEntitiesOptions`,
   `TextAnalyticsOperationResult` to `AnalyzeBatchActionsOperationDetail`
+
+## 5.0.3 (2021-02-10)
+### Dependency updates
+- Update dependency version, `azure-core` to 1.13.0 and `azure-core-http-netty` to 1.8.0.
 
 ## 5.0.2 (2021-01-14)
 ### Dependency updates
